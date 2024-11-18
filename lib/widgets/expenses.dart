@@ -1,4 +1,5 @@
 import 'package:expense_tracker/widgets/add_expense_modal.dart';
+import 'package:expense_tracker/widgets/chart/chart.dart';
 import 'package:expense_tracker/widgets/expenses_list/expenses_list.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:flutter/material.dart';
@@ -59,8 +60,15 @@ class _ExpensesState extends State<Expenses> {
       child: Text("No recorded expenses, add a new one"),
     );
     if (_registeredExpenses.isNotEmpty) {
-      mainContent = ExpensesList(
-          expenses: _registeredExpenses, onRemoveExpense: _removeExpense);
+      mainContent = Column(
+        children: [
+          Chart(expenses: _registeredExpenses),
+          Expanded(
+            child: ExpensesList(
+                expenses: _registeredExpenses, onRemoveExpense: _removeExpense),
+          ),
+        ],
+      );
     }
     return Scaffold(
         appBar: AppBar(

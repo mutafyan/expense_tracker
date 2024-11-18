@@ -177,7 +177,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
                   },
                 ),
                 const Spacer(),
-                ElevatedButton(
+                TextButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
