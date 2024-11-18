@@ -1,4 +1,5 @@
-import 'package:expense_tracker/widgets/add_expense_modal.dart';
+import 'package:expense_tracker/widgets/modal/add_button.dart';
+import 'package:expense_tracker/widgets/modal/add_expense_modal.dart';
 import 'package:expense_tracker/widgets/chart/chart.dart';
 import 'package:expense_tracker/widgets/expenses_list/expenses_list.dart';
 import 'package:expense_tracker/models/expense.dart';
@@ -15,12 +16,13 @@ class Expenses extends StatefulWidget {
 
 class _ExpensesState extends State<Expenses> {
   final List<Expense> _registeredExpenses = expenses;
-
   void _openAddExpenseModal() {
+    final height = MediaQuery.of(context).size.height;
     showModalBottomSheet(
       useSafeArea: true,
       showDragHandle: true,
-      scrollControlDisabledMaxHeightRatio: 0.8,
+      isScrollControlled: (height < 600) ? true : false,
+      scrollControlDisabledMaxHeightRatio: 0.75,
       context: context,
       builder: (ctx) => AddExpenseModal(
         onAddExpense: _addExpense,
@@ -54,15 +56,17 @@ class _ExpensesState extends State<Expenses> {
     );
   }
 
+  void _openAddCategoryModal() {}
+
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
     Widget mainContent = const Center(
       child: Text("No recorded expenses, add a new one"),
     );
     if (_registeredExpenses.isNotEmpty) {
       mainContent = Column(
         children: [
-          Chart(expenses: _registeredExpenses),
           Expanded(
             child: ExpensesList(
                 expenses: _registeredExpenses, onRemoveExpense: _removeExpense),
@@ -71,19 +75,47 @@ class _ExpensesState extends State<Expenses> {
       );
     }
     return Scaffold(
-        appBar: AppBar(
-          actions: [
-            IconButton(
-                onPressed: _openAddExpenseModal, icon: const Icon(Icons.add))
-          ],
-          title: const Text("Expense Tracker"),
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: mainContent,
+      floatingActionButton: AddButton(onPress: _openAddExpenseModal),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      appBar: AppBar(
+        actions: [
+          PopupMenuButton<int>(
+            onSelected: (value) {
+              switch (value) {
+                case 0:
+                  _openAddCategoryModal;
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 0,
+                child: Text('Add Category'),
+              ),
+            ],
+          ),
+        ],
+        title: const Text("Expense Tracker"),
+      ),
+      body: width < 600
+          ? Column(
+              children: [
+                Chart(expenses: _registeredExpenses),
+                Expanded(
+                  child: mainContent,
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: Chart(expenses: _registeredExpenses),
+                ),
+                Expanded(
+                  child: mainContent,
+                ),
+              ],
             ),
-          ],
-        ));
+    );
   }
 }

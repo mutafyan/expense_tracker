@@ -1,4 +1,5 @@
 import 'package:expense_tracker/models/expense.dart';
+import 'package:expense_tracker/widgets/modal/dropdown_item.dart';
 import 'package:flutter/material.dart';
 
 class AddExpenseModal extends StatefulWidget {
@@ -15,6 +16,10 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
   DateTime? _pickedDate;
   Category? _selectedCategory;
 
+  void _goBack() {
+    Navigator.pop(context);
+  }
+
   void _saveNewExpense(String title, int amount) {
     widget.onAddExpense(
       Expense(
@@ -23,7 +28,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
           date: _pickedDate!,
           category: _selectedCategory!),
     );
-    Navigator.pop(context);
+    _goBack();
   }
 
   void _validateInput() {
@@ -45,9 +50,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
           content: const Text("Please re-check entered date and category"),
           actions: [
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-              },
+              onPressed: _goBack,
               child: const Text("Okay"),
             )
           ],
@@ -108,6 +111,14 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
     super.dispose();
   }
 
+  void _onCategorySelect(value) {
+    if (value != null) {
+      setState(() {
+        _selectedCategory = value;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -157,31 +168,11 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
             ),
             Row(
               children: [
-                DropdownButton(
-                  hint: const Text("Category"),
-                  value: _selectedCategory,
-                  items: Category.values
-                      .map(
-                        (category) => DropdownMenuItem(
-                          value: category,
-                          child: Text(category.name.toUpperCase()),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedCategory = value;
-                      });
-                    }
-                  },
-                ),
+                DropdownItem(
+                    selectedCategory: _selectedCategory,
+                    onChange: _onCategorySelect),
                 const Spacer(),
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Cancel")),
+                TextButton(onPressed: _goBack, child: const Text("Cancel")),
                 const SizedBox(
                   width: 10,
                 ),
