@@ -42,5 +42,8 @@ app.*.map.json
 !lib/*
 !README.md
 !pubspec.yaml
-
+!/android/app/src/main/AndroidManifest.xml
+!/ios/Runner/Info.plist
+!/android/app/src/main/res/mipmap*
+!/ios/Runner/Assets.xcassets/AppIcon.appiconset
 /.metadata
