@@ -13,7 +13,7 @@ class Chart extends StatelessWidget {
     return [
       ExpenseBucket.forCategory(expenses, Category.food),
       ExpenseBucket.forCategory(expenses, Category.leisure),
-      ExpenseBucket.forCategory(expenses, Category.medicine),
+      ExpenseBucket.forCategory(expenses, Category.health),
       ExpenseBucket.forCategory(expenses, Category.transport),
     ];
   }
