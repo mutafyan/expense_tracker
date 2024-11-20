@@ -1,3 +1,4 @@
+import 'package:expense_tracker/models/account/account.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -15,17 +16,18 @@ const categoryIcons = {
 };
 
 class Expense {
-  Expense(
-      {required this.title,
-      required this.amount,
-      required this.date,
-      required this.category})
-      : id = uuid.v4();
+  Expense({
+    required this.title,
+    required this.amount,
+    required this.date,
+    required this.category,
+    required this.account,
+  }) : id = uuid.v4();
   final String id, title;
   final int amount;
   final DateTime date;
   final Category category;
-
+  final Account account;
   String get formattedDate {
     return formatter.format(date);
   }

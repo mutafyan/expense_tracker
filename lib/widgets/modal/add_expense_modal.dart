@@ -1,6 +1,9 @@
+import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:expense_tracker/widgets/modal/dropdown_item.dart';
 import 'package:flutter/material.dart';
+
+List<Account> accounts = [Account(name: "cash"), Account(name: "card")];
 
 class AddExpenseModal extends StatefulWidget {
   const AddExpenseModal({super.key, required this.onAddExpense});
@@ -15,7 +18,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
   String? _titleError, _amountError;
   DateTime? _pickedDate;
   Category? _selectedCategory;
-
+  Account? _selectedAccount;
   void _goBack() {
     Navigator.pop(context);
   }
@@ -26,7 +29,8 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
           title: title,
           amount: amount,
           date: _pickedDate!,
-          category: _selectedCategory!),
+          category: _selectedCategory!,
+          account: _selectedAccount!),
     );
     _goBack();
   }
@@ -36,7 +40,8 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
     String title = _titleController.text;
     if (!(_validateTitle(title) &&
         _validateAmount(amount) &&
-        _validateCategoryAndDate())) return;
+        _validateCategoryAndDate() &&
+        _validateAccount())) return;
 
     _saveNewExpense(title, amount!);
   }
@@ -60,6 +65,26 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
     } else {
       return true;
     }
+  }
+
+  bool _validateAccount() {
+    if (_selectedAccount == null) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("No account selected"),
+          content: const Text("Please retry"),
+          actions: [
+            ElevatedButton(
+              onPressed: _goBack,
+              child: const Text("Okay"),
+            )
+          ],
+        ),
+      );
+      return false;
+    }
+    return true;
   }
 
   bool _validateAmount(int? amount) {
@@ -122,66 +147,96 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              maxLength: 50,
-              decoration: InputDecoration(
-                label: const Text("Enter Title"),
-                errorText: _titleError,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          TextField(
+            controller: _titleController,
+            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            maxLength: 50,
+            decoration: InputDecoration(
+              label: const Text("Enter Title"),
+              errorText: _titleError,
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: _amountController,
+                  maxLength: 7,
+                  decoration: InputDecoration(
+                    prefixText: '֏ ',
+                    label: const Text("Enter Amount"),
+                    errorText: _amountError,
+                  ),
+                ),
               ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    controller: _amountController,
-                    maxLength: 7,
-                    decoration: InputDecoration(
-                      prefixText: '֏ ',
-                      label: const Text("Enter Amount"),
-                      errorText: _amountError,
-                    ),
-                  ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(_pickedDate == null
+                        ? "Select a date"
+                        : formatter.format(_pickedDate!)),
+                    IconButton(
+                        onPressed: _openDatePicker,
+                        icon: const Icon(Icons.calendar_month)),
+                  ],
                 ),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(_pickedDate == null
-                          ? "Select a date"
-                          : formatter.format(_pickedDate!)),
-                      IconButton(
-                          onPressed: _openDatePicker,
-                          icon: const Icon(Icons.calendar_month)),
-                    ],
-                  ),
-                )
-              ],
-            ),
-            const SizedBox(
-              height: 10,
-            ),
-            Row(
-              children: [
-                DropdownItem(
-                    selectedCategory: _selectedCategory,
-                    onChange: _onCategorySelect),
-                const Spacer(),
-                TextButton(onPressed: _goBack, child: const Text("Cancel")),
-                const SizedBox(
-                  width: 10,
-                ),
-                ElevatedButton(
-                    onPressed: _validateInput,
-                    child: const Text("Save Expense"))
-              ],
-            )
-          ],
-        ));
+              )
+            ],
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          Row(
+            children: [
+              DropdownItem(
+                  selectedCategory: _selectedCategory,
+                  onChange: _onCategorySelect),
+              DropdownButton(
+                  hint: const Text("Account"),
+                  items: accounts
+                      .map(
+                        (account) => DropdownMenuItem(
+                          value: account,
+                          child: Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      account.icon,
+                                      Text(account.getName),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  "֏ ${account.getBalance.toString()}",
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedAccount = value;
+                      });
+                    }
+                  }),
+            ],
+          ),
+          const Spacer(),
+          TextButton(onPressed: _goBack, child: const Text("Cancel")),
+          ElevatedButton(onPressed: _validateInput, child: const Text("Save"))
+        ],
+      ),
+    );
   }
 }

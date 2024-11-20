@@ -18,10 +18,11 @@ class _ExpensesState extends State<Expenses> {
   final List<Expense> _registeredExpenses = expenses;
   void _openAddExpenseModal() {
     final height = MediaQuery.of(context).size.height;
+    print(MediaQuery.of(context).size.width);
     showModalBottomSheet(
       useSafeArea: true,
       showDragHandle: true,
-      isScrollControlled: (height < 600) ? true : false,
+      isScrollControlled: height < 600,
       scrollControlDisabledMaxHeightRatio: 0.75,
       context: context,
       builder: (ctx) => AddExpenseModal(
