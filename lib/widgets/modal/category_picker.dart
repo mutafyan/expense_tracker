@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/expense.dart';
 
-class DropdownItem extends StatelessWidget {
-  const DropdownItem({
+class CategoryPicker extends StatelessWidget {
+  const CategoryPicker({
     required this.selectedCategory,
     required this.onChange,
     super.key,
@@ -11,9 +11,13 @@ class DropdownItem extends StatelessWidget {
   final Category? selectedCategory;
   @override
   Widget build(BuildContext context) {
-    return DropdownButton(
-      hint: const Text("Category"),
+    return DropdownButtonFormField<Category>(
+      hint: const Text("Select Category"),
       value: selectedCategory,
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        labelText: "Category",
+      ),
       items: Category.values
           .map(
             (category) => DropdownMenuItem(

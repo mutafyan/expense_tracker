@@ -1,13 +1,14 @@
+import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/models/expense.dart';
-import 'package:expense_tracker/widgets/modal/dropdown_item.dart';
+import 'package:expense_tracker/widgets/modal/account_picker.dart';
+import 'package:expense_tracker/widgets/modal/category_picker.dart';
 import 'package:flutter/material.dart';
-
-List<Account> accounts = [Account(name: "cash"), Account(name: "card")];
 
 class AddExpenseModal extends StatefulWidget {
   const AddExpenseModal({super.key, required this.onAddExpense});
   final void Function(Expense expense) onAddExpense;
+
   @override
   State<StatefulWidget> createState() => _AddExpenseModalState();
 }
@@ -15,29 +16,50 @@ class AddExpenseModal extends StatefulWidget {
 class _AddExpenseModalState extends State<AddExpenseModal> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
+  final dbHelper = DatabaseHelper.instance;
   String? _titleError, _amountError;
   DateTime? _pickedDate;
   Category? _selectedCategory;
   Account? _selectedAccount;
+  List<Account> availableAccounts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccounts();
+  }
+
   void _goBack() {
     Navigator.pop(context);
   }
 
+  Future<void> _loadAccounts() async {
+    final accounts = await dbHelper.getAllAccounts();
+    setState(() {
+      availableAccounts = accounts;
+      if (availableAccounts.isNotEmpty) {
+        _selectedAccount = availableAccounts[0];
+      }
+    });
+  }
+
   void _saveNewExpense(String title, int amount) {
-    widget.onAddExpense(
-      Expense(
-          title: title,
-          amount: amount,
-          date: _pickedDate!,
-          category: _selectedCategory!,
-          account: _selectedAccount!),
+    final newExpense = Expense(
+      title: title,
+      amount: amount,
+      date: _pickedDate!,
+      category: _selectedCategory!,
+      account: _selectedAccount!,
     );
+
+    widget.onAddExpense(newExpense);
     _goBack();
   }
 
   void _validateInput() {
     int? amount = int.tryParse(_amountController.text);
     String title = _titleController.text;
+
     if (!(_validateTitle(title) &&
         _validateAmount(amount) &&
         _validateCategoryAndDate() &&
@@ -48,40 +70,15 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
 
   bool _validateCategoryAndDate() {
     if (_selectedCategory == null || _pickedDate == null) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("Invalid input"),
-          content: const Text("Please re-check entered date and category"),
-          actions: [
-            ElevatedButton(
-              onPressed: _goBack,
-              child: const Text("Okay"),
-            )
-          ],
-        ),
-      );
+      _showErrorDialog("Invalid input", "Please select a date and category.");
       return false;
-    } else {
-      return true;
     }
+    return true;
   }
 
   bool _validateAccount() {
     if (_selectedAccount == null) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("No account selected"),
-          content: const Text("Please retry"),
-          actions: [
-            ElevatedButton(
-              onPressed: _goBack,
-              child: const Text("Okay"),
-            )
-          ],
-        ),
-      );
+      _showErrorDialog("No account selected", "Please select an account.");
       return false;
     }
     return true;
@@ -90,7 +87,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
   bool _validateAmount(int? amount) {
     if (amount == null || amount <= 0) {
       setState(() {
-        _amountError = "Invalid amount";
+        _amountError = "Please enter a valid positive amount.";
       });
       return false;
     } else {
@@ -104,7 +101,7 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
   bool _validateTitle(String title) {
     if (title.trim().isEmpty) {
       setState(() {
-        _titleError = "Invalid title";
+        _titleError = "Title cannot be empty.";
       });
       return false;
     } else {
@@ -129,6 +126,22 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
     });
   }
 
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Okay"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -144,21 +157,33 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
     }
   }
 
+  void _onAccountSelect(value) {
+    if (value != null) {
+      setState(() {
+        _selectedAccount = value;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final keyboardSize = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, keyboardSize + 10),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _titleController,
-            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimaryContainer),
             maxLength: 50,
             decoration: InputDecoration(
               label: const Text("Enter Title"),
               errorText: _titleError,
             ),
           ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -173,68 +198,60 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
                   ),
                 ),
               ),
+              const SizedBox(width: 10),
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(_pickedDate == null
-                        ? "Select a date"
-                        : formatter.format(_pickedDate!)),
-                    IconButton(
-                        onPressed: _openDatePicker,
-                        icon: const Icon(Icons.calendar_month)),
-                  ],
+                child: InkWell(
+                  onTap: _openDatePicker,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: "Select Date",
+                      border: OutlineInputBorder(),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _pickedDate == null
+                              ? "No date chosen"
+                              : formatter.format(_pickedDate!),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const Icon(Icons.calendar_today),
+                      ],
+                    ),
+                  ),
                 ),
-              )
+              ),
             ],
           ),
-          const SizedBox(
-            height: 10,
-          ),
+          const SizedBox(height: 10),
           Row(
             children: [
-              DropdownItem(
+              Expanded(
+                child: CategoryPicker(
                   selectedCategory: _selectedCategory,
-                  onChange: _onCategorySelect),
-              DropdownButton(
-                  hint: const Text("Account"),
-                  items: accounts
-                      .map(
-                        (account) => DropdownMenuItem(
-                          value: account,
-                          child: Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      account.icon,
-                                      Text(account.getName),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  "֏ ${account.getBalance.toString()}",
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedAccount = value;
-                      });
-                    }
-                  }),
+                  onChange: _onCategorySelect,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: AccountPicker(
+                  selectedAccount: _selectedAccount,
+                  availableAccounts: availableAccounts,
+                  onChange: _onAccountSelect,
+                ),
+              ),
             ],
           ),
           const Spacer(),
-          TextButton(onPressed: _goBack, child: const Text("Cancel")),
-          ElevatedButton(onPressed: _validateInput, child: const Text("Save"))
+          Row(
+            children: [
+              const Spacer(),
+              TextButton(onPressed: _goBack, child: const Text("Cancel")),
+              ElevatedButton(
+                  onPressed: _validateInput, child: const Text("Save"))
+            ],
+          ),
         ],
       ),
     );
