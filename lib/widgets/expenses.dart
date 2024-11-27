@@ -1,11 +1,15 @@
+import 'package:expense_tracker/widgets/account_manager/account_preview.dart';
+import 'package:expense_tracker/widgets/chart/collapsible.dart';
 import 'package:expense_tracker/widgets/modal/add_button.dart';
 import 'package:expense_tracker/widgets/modal/add_expense_modal.dart';
-import 'package:expense_tracker/widgets/chart/chart.dart';
+import 'package:expense_tracker/widgets/chart/expanded_chart.dart';
+import 'package:expense_tracker/widgets/chart/collapsed_chart.dart';
 import 'package:expense_tracker/widgets/expenses_list/expenses_list.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class Expenses extends StatefulWidget {
   const Expenses({super.key});
@@ -20,11 +24,21 @@ class _ExpensesState extends State<Expenses> {
   final dbHelper = DatabaseHelper.instance;
   List<Expense> _registeredExpenses = [];
   List<Account> _accounts = [];
+  ScrollController _scrollController = ScrollController();
+  bool _isFabVisible = true;
 
   @override
   void initState() {
     super.initState();
     _loadData(); // Load accounts and expenses from the database when initializing
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -36,6 +50,28 @@ class _ExpensesState extends State<Expenses> {
       _accounts = accounts;
       _registeredExpenses = expenses;
     });
+  }
+
+  void _onScroll() {
+    _toggleFabVisibility();
+  }
+
+  void _toggleFabVisibility() {
+    if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.reverse) {
+      if (_isFabVisible) {
+        setState(() {
+          _isFabVisible = false;
+        });
+      }
+    } else if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.forward) {
+      if (!_isFabVisible) {
+        setState(() {
+          _isFabVisible = true;
+        });
+      }
+    }
   }
 
   void _openAddExpenseModal() {
@@ -57,9 +93,16 @@ class _ExpensesState extends State<Expenses> {
     final updatedAccount = expense.account;
     updatedAccount.deductExpense(expense.amount);
     await dbHelper.updateAccount(updatedAccount);
-
+    await _refreshAccounts();
     setState(() {
       _registeredExpenses.add(expense);
+    });
+  }
+
+  Future<void> _refreshAccounts() async {
+    final accounts = await dbHelper.getAllAccounts();
+    setState(() {
+      _accounts = accounts;
     });
   }
 
@@ -69,12 +112,12 @@ class _ExpensesState extends State<Expenses> {
     await dbHelper.deleteExpense(expense.id);
     updatedAccount.addIncome(expense.amount);
     await dbHelper.updateAccount(updatedAccount);
+    await _refreshAccounts();
 
     setState(() {
       _registeredExpenses.removeAt(index);
     });
 
-    // Show snackbar with undo option
     _showSnackBar(expense, updatedAccount, index);
   }
 
@@ -87,10 +130,11 @@ class _ExpensesState extends State<Expenses> {
         action: SnackBarAction(
           label: "Undo",
           onPressed: () async {
-            // Re-add the expense to the database and the local list
             await dbHelper.insertExpense(expense);
             updatedAccount.deductExpense(expense.amount);
             await dbHelper.updateAccount(updatedAccount);
+            await _refreshAccounts();
+
             setState(() {
               _registeredExpenses.insert(index, expense);
             });
@@ -100,25 +144,11 @@ class _ExpensesState extends State<Expenses> {
     );
   }
 
-  void _openAddCategoryModal() {}
-
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
-    Widget mainContent = const Center(
-      child: Text("No recorded expenses, add a new one"),
-    );
-
-    if (_registeredExpenses.isNotEmpty) {
-      mainContent = ExpensesList(
-        expenses: _registeredExpenses,
-        onRemoveExpense: _removeExpense,
-      );
-    }
-
     return Scaffold(
-      floatingActionButton: AddButton(onPress: _openAddExpenseModal),
+      floatingActionButton:
+          _isFabVisible ? AddButton(onPress: _openAddExpenseModal) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
         actions: [
@@ -126,7 +156,7 @@ class _ExpensesState extends State<Expenses> {
             onSelected: (value) {
               switch (value) {
                 case 0:
-                  _openAddCategoryModal();
+                  // Placeholder for add category modal
                   break;
               }
             },
@@ -140,25 +170,39 @@ class _ExpensesState extends State<Expenses> {
         ],
         title: const Text("Expense Tracker"),
       ),
-      body: width < 600
-          ? Column(
-              children: [
-                Chart(expenses: _registeredExpenses),
-                Expanded(
-                  child: mainContent,
+      body: Column(
+        children: [
+          SizedBox(
+            height: 100.0,
+            child: AccountPreview(
+              accounts: _accounts,
+              onAccountUpdated: _refreshAccounts,
+            ),
+          ),
+          Expanded(
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: false,
+                  floating: false,
+                  delegate: CollapsibleChartDelegate(
+                    expandedChart: ExpandedChart(expenses: _registeredExpenses),
+                    collapsedChart:
+                        CollapsedChart(expenses: _registeredExpenses),
+                    expandedHeight: 200.0, // Adjust as needed
+                    collapsedHeight: 80.0, // Minimum height before collapsing
+                  ),
                 ),
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(
-                  child: Chart(expenses: _registeredExpenses),
-                ),
-                Expanded(
-                  child: mainContent,
+                ExpensesList(
+                  expenses: _registeredExpenses,
+                  onRemoveExpense: _removeExpense,
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

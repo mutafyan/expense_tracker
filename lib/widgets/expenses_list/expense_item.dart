@@ -12,9 +12,15 @@ class ExpenseItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              expense.title,
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                Text(
+                  expense.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                expense.account.icon,
+              ],
             ),
             const SizedBox(
               height: 5,
