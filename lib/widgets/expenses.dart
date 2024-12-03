@@ -1,3 +1,4 @@
+import 'package:expense_tracker/screens/settings/settings_screen.dart';
 import 'package:expense_tracker/widgets/account_manager/account_preview.dart';
 import 'package:expense_tracker/widgets/chart/collapsible.dart';
 import 'package:expense_tracker/widgets/modal/add_button.dart';
@@ -24,7 +25,7 @@ class _ExpensesState extends State<Expenses> {
   final dbHelper = DatabaseHelper.instance;
   List<Expense> _registeredExpenses = [];
   List<Account> _accounts = [];
-  ScrollController _scrollController = ScrollController();
+  final _scrollController = ScrollController();
   bool _isFabVisible = true;
 
   @override
@@ -42,13 +43,27 @@ class _ExpensesState extends State<Expenses> {
   }
 
   Future<void> _loadData() async {
-    await dbHelper
-        .addDefaultAccounts(); // add cash and card as default accounts
-    final accounts = await dbHelper.getAllAccounts();
-    final expenses = await dbHelper.getAllExpenses(accounts);
+    await dbHelper.addDefaultAccounts(); // Ensure default accounts are added
+    final visibleAccounts = await _loadVisibleAccounts();
+    final expenses = await dbHelper.getAllExpenses(visibleAccounts);
     setState(() {
-      _accounts = accounts;
+      _accounts = visibleAccounts;
       _registeredExpenses = expenses;
+    });
+  }
+
+  Future<List<Account>> _loadVisibleAccounts() async {
+    final allAccounts = await dbHelper.getAllAccounts();
+
+    final visibleAccounts =
+        allAccounts.where((account) => account.isVisible).toList();
+    return visibleAccounts;
+  }
+
+  Future<void> _refreshAccounts() async {
+    final visibleAccounts = await _loadVisibleAccounts();
+    setState(() {
+      _accounts = visibleAccounts;
     });
   }
 
@@ -99,13 +114,6 @@ class _ExpensesState extends State<Expenses> {
     });
   }
 
-  Future<void> _refreshAccounts() async {
-    final accounts = await dbHelper.getAllAccounts();
-    setState(() {
-      _accounts = accounts;
-    });
-  }
-
   void _removeExpense(Expense expense) async {
     final index = _registeredExpenses.indexOf(expense);
     final updatedAccount = expense.account;
@@ -152,21 +160,16 @@ class _ExpensesState extends State<Expenses> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
         actions: [
-          PopupMenuButton<int>(
-            onSelected: (value) {
-              switch (value) {
-                case 0:
-                  // Placeholder for add category modal
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 0,
-                child: Text('Add Category'),
-              ),
-            ],
-          ),
+          IconButton(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (ctx) => const SettingsScreen()),
+                );
+                _refreshAccounts(); // Refresh data after returning from settings
+                _loadData(); // Reload data to reflect changes
+              },
+              icon: const Icon(Icons.settings))
         ],
         title: const Text("Expense Tracker"),
       ),
@@ -190,8 +193,8 @@ class _ExpensesState extends State<Expenses> {
                     expandedChart: ExpandedChart(expenses: _registeredExpenses),
                     collapsedChart:
                         CollapsedChart(expenses: _registeredExpenses),
-                    expandedHeight: 200.0, // Adjust as needed
-                    collapsedHeight: 80.0, // Minimum height before collapsing
+                    expandedHeight: 200.0,
+                    collapsedHeight: 20.0,
                   ),
                 ),
                 ExpensesList(

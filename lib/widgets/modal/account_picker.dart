@@ -13,45 +13,43 @@ class AccountPicker extends StatelessWidget {
   final List<Account> availableAccounts;
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: DropdownButtonFormField<Account>(
-        value: selectedAccount,
-        hint: const Text("Select Account"),
-        onChanged: onChange,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          labelText: "Account",
-        ),
-        selectedItemBuilder: (BuildContext context) {
-          return availableAccounts.map<Widget>((Account account) {
-            return Row(
-              children: [
-                account.icon,
-                const SizedBox(width: 5),
-                Text(account.getName),
-              ],
-            );
-          }).toList();
-        },
-        items: availableAccounts
-            .map(
-              (account) => DropdownMenuItem(
-                value: account,
-                child: Expanded(
-                  child: Row(
-                    children: [
-                      account.icon,
-                      const SizedBox(width: 5),
-                      Text(account.getName),
-                      const Spacer(),
-                      Text("֏ ${account.getBalance.toString()}"),
-                    ],
-                  ),
+    return DropdownButtonFormField<Account>(
+      value: selectedAccount,
+      hint: const Text("Select Account"),
+      onChanged: onChange,
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        labelText: "Account",
+      ),
+      selectedItemBuilder: (BuildContext context) {
+        return availableAccounts.map<Widget>((Account account) {
+          return Row(
+            children: [
+              Icon(account.iconData),
+              const SizedBox(width: 5),
+              Text(account.displayName),
+            ],
+          );
+        }).toList();
+      },
+      items: availableAccounts
+          .map(
+            (account) => DropdownMenuItem(
+              value: account,
+              child: Expanded(
+                child: Row(
+                  children: [
+                    Icon(account.iconData),
+                    const SizedBox(width: 5),
+                    Text(account.displayName),
+                    const Spacer(),
+                    Text("֏ ${account.displayBalance.toString()}"),
+                  ],
                 ),
               ),
-            )
-            .toList(),
-      ),
+            ),
+          )
+          .toList(),
     );
   }
 }

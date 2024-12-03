@@ -19,7 +19,7 @@ class ExpenseItem extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                expense.account.icon,
+                Icon(expense.account.iconData),
               ],
             ),
             const SizedBox(

@@ -1,12 +1,13 @@
+// widgets/account_preview.dart
+import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/widgets/account_manager/add_income_modal.dart';
 import 'package:flutter/material.dart';
-import 'package:expense_tracker/models/account/account.dart';
 
 class AccountPreview extends StatelessWidget {
   final List<Account> accounts;
   final VoidCallback onAccountUpdated;
 
-  AccountPreview({
+  const AccountPreview({
     super.key,
     required this.accounts,
     required this.onAccountUpdated,
@@ -62,12 +63,12 @@ class AccountPreview extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        account.icon.icon,
+                        account.iconData,
                         color: Theme.of(context).colorScheme.secondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        account.getName,
+                        account.displayName,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -87,7 +88,7 @@ class AccountPreview extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    "֏${account.getBalance.toString()}",
+                    "֏${account.displayBalance}",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

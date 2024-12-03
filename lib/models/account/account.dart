@@ -1,3 +1,4 @@
+// models/account/account.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,27 +9,32 @@ class Account {
     String? id,
     required this.name,
     this.balance = 0,
+    this.isDefault = false,
+    this.isVisible = true,
+    IconData? iconData,
   })  : id = id ?? uuid.v4(),
-        icon = _getIconForAccount(name);
+        iconData = iconData ?? _getIconForAccount(name);
 
   String id;
   final String name;
   int balance;
-  final Icon icon;
+  bool isDefault;
+  bool isVisible;
+  IconData iconData;
 
-  static Icon _getIconForAccount(String name) {
+  static IconData _getIconForAccount(String name) {
     switch (name.toLowerCase()) {
       case 'cash':
-        return const Icon(Icons.account_balance_wallet_rounded);
+        return Icons.account_balance_wallet_rounded;
       case 'card':
-        return const Icon(Icons.credit_card);
+        return Icons.credit_card;
       default:
-        return const Icon(Icons.account_balance_rounded);
+        return Icons.account_balance_rounded;
     }
   }
 
-  String get getName => name[0].toUpperCase() + name.substring(1);
-  int get getBalance => balance;
+  String get displayName => name[0].toUpperCase() + name.substring(1);
+  int get displayBalance => balance;
 
   void addIncome(int income) {
     balance += income;
@@ -43,6 +49,9 @@ class Account {
       'id': id,
       'name': name,
       'balance': balance,
+      'isDefault': isDefault ? 1 : 0,
+      'isVisible': isVisible ? 1 : 0,
+      'iconCodePoint': iconData.codePoint,
     };
   }
 
@@ -51,6 +60,11 @@ class Account {
       id: map['id'],
       name: map['name'],
       balance: map['balance'],
+      isDefault: map['isDefault'] == 1,
+      isVisible: map['isVisible'] == 1,
+      iconData: map['iconCodePoint'] != null
+          ? IconData(map['iconCodePoint'], fontFamily: 'MaterialIcons')
+          : Icons.account_balance_rounded,
     );
   }
 }

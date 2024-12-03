@@ -1,15 +1,17 @@
+// db_helper.dart
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/material.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
   final List<Account> defaultAccounts = [
-    Account(name: "Cash", balance: 0),
-    Account(name: "Card", balance: 0),
+    Account(name: "Cash", isDefault: true),
+    Account(name: "Card", isDefault: true),
   ];
 
   DatabaseHelper._init();
@@ -26,8 +28,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Updated version for migration
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
   }
 
@@ -40,7 +43,10 @@ class DatabaseHelper {
       CREATE TABLE accounts (
         id $idType,
         name $textType,
-        balance $intType
+        balance $intType,
+        isDefault $intType DEFAULT 0,
+        isVisible $intType DEFAULT 1,
+        iconCodePoint $intType DEFAULT ${Icons.account_balance_wallet.codePoint}
       )
     ''');
 
@@ -51,10 +57,36 @@ class DatabaseHelper {
         amount $intType,
         date $textType,
         category $intType,
-        account_id $textType,
-        FOREIGN KEY (account_id) REFERENCES accounts (id)
+        account_id $idType,
+        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
       )
     ''');
+  }
+
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        ALTER TABLE accounts ADD COLUMN isDefault INTEGER NOT NULL DEFAULT 0
+      ''');
+      await db.execute('''
+        ALTER TABLE accounts ADD COLUMN isVisible INTEGER NOT NULL DEFAULT 1
+      ''');
+      await db.execute('''
+        ALTER TABLE accounts ADD COLUMN iconCodePoint INTEGER NOT NULL DEFAULT ${Icons.account_balance_wallet.codePoint}
+      ''');
+
+      // Insert default accounts if they don't exist
+      for (var account in defaultAccounts) {
+        final existing = await db.query(
+          'accounts',
+          where: 'name = ?',
+          whereArgs: [account.name],
+        );
+        if (existing.isEmpty) {
+          await db.insert('accounts', account.toMap());
+        }
+      }
+    }
   }
 
   Future<void> addDefaultAccounts() async {
@@ -64,8 +96,6 @@ class DatabaseHelper {
           .query('accounts', where: 'name = ?', whereArgs: [account.name]);
       if (existingAccounts.isEmpty) {
         await db.insert('accounts', account.toMap());
-      } else {
-        account.id = existingAccounts.first['id'];
       }
     }
   }
@@ -94,10 +124,19 @@ class DatabaseHelper {
     return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Account>> getAllAccounts() async {
+  Future<List<Account>> getAllAccounts({bool includeHidden = true}) async {
     final db = await instance.database;
-    final result = await db.query('accounts');
+    final result = await db.query(
+      'accounts',
+      where: includeHidden ? null : 'isVisible = ?',
+      whereArgs: includeHidden ? null : [1],
+    );
     return result.map((map) => Account.fromMap(map)).toList();
+  }
+
+  Future<int> insertAccount(Account account) async {
+    final db = await instance.database;
+    return await db.insert('accounts', account.toMap());
   }
 
   Future<int> updateAccount(Account account) async {
@@ -108,5 +147,12 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [account.id],
     );
+  }
+
+  Future<int> deleteAccount(String id) async {
+    final db = await instance.database;
+    // Delete associated expenses first
+    await db.delete('expenses', where: 'account_id = ?', whereArgs: [id]);
+    return await db.delete('accounts', where: 'id = ?', whereArgs: [id]);
   }
 }

@@ -89,7 +89,7 @@ class ExpandedChart extends StatelessWidget {
                         (bucket) => Expanded(
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: availableHeight * 0.01,
+                              horizontal: availableHeight * 0.05,
                             ),
                             child: Icon(
                               categoryIcons[bucket.category],
