@@ -1,4 +1,3 @@
-// screens/settings/details/account_settings_screen.dart
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/widgets/account_manager/add_account_modal.dart';

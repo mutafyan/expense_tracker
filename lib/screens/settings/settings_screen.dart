@@ -1,4 +1,3 @@
-// screens/settings/settings_screen.dart
 import 'package:expense_tracker/screens/settings/details/account_settings_screen.dart';
 import 'package:expense_tracker/screens/settings/settings_item.dart';
 import 'package:flutter/material.dart';

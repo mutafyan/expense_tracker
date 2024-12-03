@@ -1,4 +1,3 @@
-// widgets/account_manager/add_income_modal.dart
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:flutter/material.dart';
@@ -54,8 +53,8 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
                 children: [
                   // Income Amount
                   TextFormField(
-                    decoration:
-                        const InputDecoration(labelText: 'Income Amount'),
+                    decoration: const InputDecoration(
+                        labelText: 'Income Amount', prefix: Text("֏ ")),
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {

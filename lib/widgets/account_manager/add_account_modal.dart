@@ -1,4 +1,3 @@
-// widgets/account_manager/add_account_modal.dart
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:flutter/material.dart';
@@ -20,17 +19,16 @@ class _AddAccountModalState extends State<AddAccountModal> {
 
   // Define a list of icons for selection
   final List<IconData> _availableIcons = [
-    Icons.account_balance_wallet,
+    Icons.account_balance_wallet_outlined,
     Icons.credit_card,
     Icons.money,
     Icons.savings,
     Icons.paid,
     Icons.attach_money,
     Icons.account_balance,
-    Icons.account_balance_wallet_outlined,
     Icons.money_off,
-    Icons.payment,
-    // Add more icons as needed
+    Icons.payments_outlined,
+    Icons.paypal_outlined
   ];
 
   void _submit() async {
@@ -71,7 +69,6 @@ class _AddAccountModalState extends State<AddAccountModal> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Account Name
                     TextFormField(
                       decoration:
                           const InputDecoration(labelText: 'Account Name'),

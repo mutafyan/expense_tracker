@@ -1,4 +1,3 @@
-// db_helper.dart
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/models/expense.dart';
 import 'package:sqflite/sqflite.dart';
