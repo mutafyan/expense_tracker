@@ -36,9 +36,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   void _deleteAccount(Account account) async {
-    if (account.isDefault) return; // Prevent deletion of default accounts
-
-    // Confirm deletion
+    if (account.isDefault) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -99,21 +97,21 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     title: Text(account.displayName),
                     subtitle: account.isDefault
                         ? const Text('Default Account')
-                        : null,
+                        : const Text('Custom Account'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Visibility Toggle
-                        Switch(
-                          value: account.isVisible,
-                          onChanged: (value) => _toggleVisibility(account),
-                        ),
                         // Delete Button for non-default accounts
                         if (!account.isDefault)
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () => _deleteAccount(account),
                           ),
+                        // Visibility Toggle
+                        Switch(
+                          value: account.isVisible,
+                          onChanged: (value) => _toggleVisibility(account),
+                        ),
                       ],
                     ),
                   );
