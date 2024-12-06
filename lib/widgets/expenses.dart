@@ -1,4 +1,3 @@
-// lib/screens/home_screen.dart
 import 'package:expense_tracker/screens/settings/settings_screen.dart';
 import 'package:expense_tracker/widgets/account_manager/account_preview.dart';
 import 'package:expense_tracker/widgets/chart/collapsible.dart';
@@ -27,7 +26,7 @@ class _ExpensesState extends State<Expenses> {
   final dbHelper = DatabaseHelper.instance;
   List<Expense> _registeredExpenses = [];
   List<Account> _accounts = [];
-  List<Category> _categories = []; // Add this to hold categories
+  List<Category> _categories = [];
   final _scrollController = ScrollController();
   bool _isFabVisible = true;
 
@@ -51,7 +50,7 @@ class _ExpensesState extends State<Expenses> {
     await dbHelper.addDefaultAccounts(); // Ensure default accounts are added
     final visibleAccounts = await _loadVisibleAccounts();
     final visibleCategories = await _loadVisibleCategories(); // Load categories
-    final expenses = await dbHelper.getAllExpenses(); // Corrected call
+    final expenses = await dbHelper.getAllExpenses();
 
     setState(() {
       _accounts = visibleAccounts;
@@ -206,7 +205,7 @@ class _ExpensesState extends State<Expenses> {
                   delegate: CollapsibleChartDelegate(
                     expandedChart: ExpandedChart(
                       expenses: _registeredExpenses,
-                      categories: _categories, // Pass categories
+                      categories: _categories,
                     ),
                     collapsedChart:
                         CollapsedChart(expenses: _registeredExpenses),

@@ -20,16 +20,12 @@ class ExpandedChart extends StatelessWidget {
         .toList();
   }
 
-  int get maxTotalExpense {
-    int maxTotalExpense = 0;
-
+  int get totalExpenses {
+    int total = 0;
     for (final bucket in buckets) {
-      if (bucket.totalAmount > maxTotalExpense) {
-        maxTotalExpense = bucket.totalAmount;
-      }
+      total += bucket.totalAmount;
     }
-
-    return maxTotalExpense;
+    return total;
   }
 
   @override
@@ -42,20 +38,19 @@ class ExpandedChart extends StatelessWidget {
         final availableHeight = constraints.maxHeight;
 
         // Define proportions for each section
-        final barSectionHeight = availableHeight * 0.6;
-        final iconSectionHeight = availableHeight * 0.2;
-        final spacingHeight = availableHeight * 0.01;
+        final barSectionHeight = availableHeight * 0.8;
 
         return Container(
           margin: EdgeInsets.symmetric(
-            horizontal: availableHeight * 0.08,
+            horizontal: availableHeight * 0.07,
             vertical: availableHeight * 0.01,
           ),
           padding: EdgeInsets.symmetric(
-            vertical: availableHeight * 0.08,
-            horizontal: availableHeight * 0.02,
+            vertical: availableHeight * 0.05,
+            horizontal: availableHeight * 0.01,
           ),
           width: double.infinity,
+          height: availableHeight,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             gradient: LinearGradient(
@@ -74,48 +69,18 @@ class ExpandedChart extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    for (final bucket in buckets)
+                    for (int i = 0; i < buckets.length; i++)
                       Expanded(
                         child: ChartBar(
-                          label: bucket.category.name,
-                          fill: maxTotalExpense == 0
+                          label: buckets[i].category.name,
+                          showLabel: buckets.length < 5 ? true : false,
+                          fill: totalExpenses == 0
                               ? 0
-                              : bucket.totalAmount / maxTotalExpense,
+                              : buckets[i].totalAmount / totalExpenses,
+                          iconCodePoint: buckets[i].category.iconCodePoint,
                         ),
                       )
                   ],
-                ),
-              ),
-              SizedBox(height: spacingHeight),
-              SizedBox(
-                height: iconSectionHeight,
-                child: Row(
-                  children: buckets
-                      .map(
-                        (bucket) => Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: availableHeight * 0.05,
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  IconData(bucket.category.iconCodePoint,
-                                      fontFamily: 'MaterialIcons'),
-                                  size: iconSectionHeight * 0.6,
-                                  color: isDarkMode
-                                      ? Theme.of(context).colorScheme.secondary
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withOpacity(0.7),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
                 ),
               ),
             ],

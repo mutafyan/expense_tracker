@@ -1,4 +1,7 @@
 // lib/screens/settings/category_settings_screen.dart
+
+import 'dart:math';
+
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/category/category.dart';
 import 'package:expense_tracker/widgets/category_manager/add_category_modal.dart';
@@ -14,6 +17,8 @@ class CategorySettingsScreen extends StatefulWidget {
 class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
   final dbHelper = DatabaseHelper.instance;
   List<Category> _categories = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -22,13 +27,21 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final categories = await dbHelper.getAllCategories(includeHidden: true);
-    setState(() {
-      _categories = categories;
-    });
+    try {
+      final categories = await dbHelper.getAllCategories(includeHidden: true);
+      setState(() {
+        _categories = categories;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load categories: $e';
+        _isLoading = false;
+      });
+    }
   }
 
-  void _toggleVisibility(Category category) async {
+  Future<void> _toggleVisibility(Category category) async {
     // Prevent hiding all default categories if necessary
     if (category.isDefault &&
         _categories.where((cat) => cat.isDefault && cat.isVisible).length ==
@@ -49,12 +62,24 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
       isVisible: !category.isVisible,
     );
 
-    await dbHelper.updateCategory(updatedCategory);
-    await _loadCategories();
+    try {
+      await dbHelper.updateCategory(updatedCategory);
+      await _loadCategories();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update category: $e')),
+      );
+    }
   }
 
-  void _deleteCategory(Category category) async {
-    if (category.isDefault) return; // Prevent deletion of default categories
+  Future<void> _deleteCategory(Category category) async {
+    if (category.isDefault) {
+      // Prevent deletion of default categories
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot delete a default category.')),
+      );
+      return;
+    }
 
     // Confirm deletion
     final confirm = await showDialog<bool>(
@@ -81,8 +106,19 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
 
     if (confirm != true) return;
 
-    await dbHelper.deleteCategory(category.id);
-    await _loadCategories();
+    try {
+      await dbHelper.deleteCategory(category.id);
+      await _loadCategories();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Category "${category.name}" deleted successfully.')),
+      );
+    } catch (e) {
+      // Display the error message to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete category: $e')),
+      );
+    }
   }
 
   void _openAddCategoryModal() {
@@ -99,49 +135,119 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the number of active categories (isVisible = true)
+    final activeCategoriesCount =
+        _categories.where((cat) => cat.isVisible).length;
+    final isLimitReached = activeCategoriesCount >= 10;
+
     return Scaffold(
-        appBar: AppBar(
-          title: const Text("Manage Categories"),
-        ),
-        body: _categories.isEmpty
-            ? const Center(child: Text("No categories available."))
-            : ListView.builder(
-                itemCount: _categories.length,
-                itemBuilder: (context, index) {
-                  final category = _categories[index];
-                  return ListTile(
-                    leading: Icon(
-                      IconData(category.iconCodePoint,
-                          fontFamily: 'MaterialIcons'),
-                      color: Theme.of(context).colorScheme.secondary,
+      appBar: AppBar(
+        title: const Text("Manage Categories"),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!))
+              : Column(
+                  children: [
+                    // Add Category Button with Disabled State and Informative Note
+                    // Category List
+                    Expanded(
+                      child: _categories.isEmpty
+                          ? const Center(
+                              child: Text("No categories available."),
+                            )
+                          : ListView.builder(
+                              itemCount: _categories.length,
+                              itemBuilder: (context, index) {
+                                final category = _categories[index];
+                                return ListTile(
+                                  leading: Icon(
+                                    IconData(
+                                      category.iconCodePoint,
+                                      fontFamily: 'MaterialIcons',
+                                    ),
+                                    color: category.isVisible
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .secondary
+                                        : Colors.grey,
+                                  ),
+                                  title: Text(category.name),
+                                  subtitle: category.isDefault
+                                      ? const Text('Default Category')
+                                      : null,
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Delete Button for non-default categories
+                                      if (!category.isDefault)
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                          onPressed: () =>
+                                              _deleteCategory(category),
+                                        ),
+                                      // Visibility Toggle
+                                      Switch(
+                                        value: category.isVisible,
+                                        onChanged: (value) =>
+                                            _toggleVisibility(category),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                     ),
-                    title: Text(category.name),
-                    subtitle: category.isDefault
-                        ? const Text('Default Category')
-                        : null,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Visibility Toggle
-                        Switch(
-                          value: category.isVisible,
-                          onChanged: (value) => _toggleVisibility(category),
-                        ),
-                        // Delete Button for non-default categories
-                        if (!category.isDefault)
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteCategory(category),
+                    const SizedBox(
+                      width: double.infinity,
+                      height: 20,
+                      child: Text(
+                        "Maximum of 10 Categories may be active",
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed:
+                                isLimitReached ? null : _openAddCategoryModal,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Category'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 20),
+                              textStyle: const TextStyle(fontSize: 16),
+                            ),
                           ),
-                      ],
+                          const SizedBox(height: 8),
+                          if (isLimitReached)
+                            Text(
+                              'You have reached the maximum of 10 active categories.',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                        ],
+                      ),
                     ),
-                  );
-                },
-              ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _openAddCategoryModal,
-          child: const Icon(Icons.add),
-          tooltip: 'Add Category',
-        ));
+                  ],
+                ),
+      // Floating Action Button is replaced by a button in the body for better control
+      // If you prefer to keep the FAB, you can modify it similarly
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: isLimitReached ? null : _openAddCategoryModal,
+      //   child: const Icon(Icons.add),
+      //   tooltip: 'Add Category',
+      // ),
+    );
   }
 }

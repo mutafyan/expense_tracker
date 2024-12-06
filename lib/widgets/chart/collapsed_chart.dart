@@ -9,10 +9,8 @@ class CollapsedChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        alignment: Alignment.center,
-        child: const SizedBox(
-          width: 0,
-          height: 0,
-        ));
+      alignment: Alignment.center,
+      child: const SizedBox.shrink(),
+    );
   }
 }

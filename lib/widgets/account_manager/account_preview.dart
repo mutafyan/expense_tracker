@@ -37,7 +37,7 @@ class AccountPreview extends StatelessWidget {
         itemBuilder: (context, index) {
           final account = accounts[index];
           return Container(
-            width: 150, // Adjust the width as needed
+            width: 150,
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.fromLTRB(16, 0, 0, 8),
             decoration: BoxDecoration(

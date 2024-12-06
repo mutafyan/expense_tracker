@@ -1,4 +1,3 @@
-// lib/widgets/category_picker.dart
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/category/category.dart';
 import 'package:flutter/material.dart';

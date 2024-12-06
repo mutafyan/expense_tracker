@@ -1,4 +1,3 @@
-// lib/widgets/modal/add_expense_modal.dart
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/expense/expense.dart';
 import 'package:expense_tracker/models/account/account.dart';

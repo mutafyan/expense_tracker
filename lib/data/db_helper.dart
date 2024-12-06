@@ -1,8 +1,7 @@
-// lib/data/db_helper.dart
-import 'package:expense_tracker/models/account/account.dart';
-import 'package:expense_tracker/models/category/category.dart';
-import 'package:expense_tracker/models/expense/expense.dart';
 import 'package:expense_tracker/data/default_categories.dart';
+import 'package:expense_tracker/models/category/category.dart';
+import 'package:expense_tracker/models/account/account.dart';
+import 'package:expense_tracker/models/expense/expense.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
@@ -30,9 +29,12 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2, // Incremented version for migration
+      version: 3, // Incremented version for new migration
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
+      onOpen: (db) async {
+        await db.execute("PRAGMA foreign_keys = ON"); // Enable foreign keys
+      },
     );
   }
 
@@ -80,92 +82,61 @@ class DatabaseHelper {
     ''');
 
     // Insert default categories
-    for (var category in defaultCategories) {
-      await db.insert('categories', category.toMap());
-    }
+    await _insertDefaultCategories(db);
 
     // Insert default accounts
     for (var account in defaultAccounts) {
       await db.insert('accounts', account.toMap());
+    }
+
+    // Insert a default 'Uncategorized' category to handle deleted categories
+    final uncategorized = Category(
+      name: "Uncategorized",
+      iconCodePoint: Icons.help_outline.codePoint,
+      isDefault: true,
+      isVisible: true,
+    );
+    await db.insert('categories', uncategorized.toMap());
+  }
+
+  Future _insertDefaultCategories(Database db) async {
+    final defaultCategories = [
+      Category(
+          name: "Food",
+          iconCodePoint: Icons.fastfood.codePoint,
+          isDefault: true),
+      Category(
+          name: "Transport",
+          iconCodePoint: Icons.directions_car.codePoint,
+          isDefault: true),
+      Category(
+          name: "Health",
+          iconCodePoint: Icons.healing.codePoint,
+          isDefault: true),
+      Category(
+          name: "Entertainment",
+          iconCodePoint: Icons.movie.codePoint,
+          isDefault: true),
+      // Add more default categories as needed
+    ];
+
+    for (var category in defaultCategories) {
+      await db.insert('categories', category.toMap());
     }
   }
 
   // Handle database upgrades
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Step 1: Create new categories table
-      await db.execute('''
-        CREATE TABLE categories (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          iconCodePoint INTEGER NOT NULL,
-          isDefault INTEGER NOT NULL DEFAULT 0,
-          isVisible INTEGER NOT NULL DEFAULT 1
-        )
-      ''');
+      await db.transaction((txn) async {
+        // Example migration steps for version 2
+        // Add any necessary migration steps here
+      });
+    }
 
-      // Step 2: Insert default categories
-      for (var category in defaultCategories) {
-        await db.insert('categories', category.toMap());
-      }
-
-      // Step 3: Migrate existing expenses to reference category IDs
-      final expenses = await db.query('expenses');
-
-      // Mapping from enum index to default category IDs
-      final Map<int, String> categoryIndexToId = {
-        0: defaultCategories[0].id, // Food
-        1: defaultCategories[1].id, // Transport
-        2: defaultCategories[2].id, // Health
-        3: defaultCategories[3].id, // Leisure
-      };
-
-      for (var expenseMap in expenses) {
-        final categoryIndex = expenseMap['category'] as int;
-        final categoryId = categoryIndexToId[categoryIndex];
-        if (categoryId != null) {
-          await db.update(
-            'expenses',
-            {'category_id': categoryId},
-            where: 'id = ?',
-            whereArgs: [expenseMap['id']],
-          );
-        } else {
-          // Assign to a default category if mapping is not found
-          await db.update(
-            'expenses',
-            {'category_id': defaultCategories[0].id},
-            where: 'id = ?',
-            whereArgs: [expenseMap['id']],
-          );
-        }
-      }
-
-      // Step 4: Recreate the expenses table without the old 'category' column
-      await db.execute('''
-        CREATE TABLE expenses_new (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          amount INTEGER NOT NULL,
-          date TEXT NOT NULL,
-          category_id TEXT,
-          account_id TEXT NOT NULL,
-          FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
-          FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
-        )
-      ''');
-
-      // Step 5: Copy data from old expenses table to new expenses table
-      await db.execute('''
-        INSERT INTO expenses_new (id, title, amount, date, category_id, account_id)
-        SELECT id, title, amount, date, category_id, account_id FROM expenses
-      ''');
-
-      // Step 6: Drop the old expenses table
-      await db.execute('DROP TABLE expenses');
-
-      // Step 7: Rename the new expenses table to the original name
-      await db.execute('ALTER TABLE expenses_new RENAME TO expenses');
+    if (oldVersion < 3) {
+      // No specific migration steps for version 3 yet
+      // But incrementing the version to manage future migrations
     }
   }
 
@@ -183,11 +154,34 @@ class DatabaseHelper {
 
   Future<int> insertCategory(Category category) async {
     final db = await instance.database;
+
+    // Check if the category limit is reached
+    final activeCategoriesCount = Sqflite.firstIntValue(await db
+            .rawQuery('SELECT COUNT(*) FROM categories WHERE isVisible = 1')) ??
+        0;
+
+    if (activeCategoriesCount >= 10 && category.isVisible) {
+      throw Exception('Maximum of 10 active categories reached.');
+    }
+
     return await db.insert('categories', category.toMap());
   }
 
   Future<int> updateCategory(Category category) async {
     final db = await instance.database;
+
+    // If setting isVisible to true, ensure the limit is not exceeded
+    if (category.isVisible) {
+      final activeCategoriesCount = Sqflite.firstIntValue(await db.rawQuery(
+              'SELECT COUNT(*) FROM categories WHERE isVisible = 1 AND id != ?',
+              [category.id])) ??
+          0;
+
+      if (activeCategoriesCount >= 10) {
+        throw Exception('Maximum of 10 active categories reached.');
+      }
+    }
+
     return await db.update(
       'categories',
       category.toMap(),
@@ -198,7 +192,46 @@ class DatabaseHelper {
 
   Future<int> deleteCategory(String id) async {
     final db = await instance.database;
-    // Optionally handle associated expenses, e.g., set category_id to null or assign to default category
+
+    // Prevent deletion of default categories
+    final category = await db.query('categories',
+        where: 'id = ?', whereArgs: [id], limit: 1);
+    if (category.isEmpty) {
+      throw Exception('Category not found.');
+    }
+
+    if (category.first['isDefault'] == 1) {
+      throw Exception('Cannot delete a default category.');
+    }
+
+    // Reassign associated expenses to 'Uncategorized'
+    final uncategorized = await db.query('categories',
+        where: 'name = ?', whereArgs: ['Uncategorized'], limit: 1);
+
+    String uncategorizedId;
+    if (uncategorized.isEmpty) {
+      // Create 'Uncategorized' category if it doesn't exist
+      final newUncategorized = Category(
+        name: "Uncategorized",
+        iconCodePoint: Icons.help_outline.codePoint,
+        isDefault: true,
+        isVisible: true,
+      );
+      uncategorizedId = newUncategorized.id;
+      await db.insert('categories', newUncategorized.toMap());
+    } else {
+      uncategorizedId = uncategorized.first['id'] as String;
+    }
+
+    // Reassign expenses
+    await db.update(
+      'expenses',
+      {'category_id': uncategorizedId},
+      where: 'category_id = ?',
+      whereArgs: [id],
+    );
+
+    // Delete the category
     return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -228,16 +261,16 @@ class DatabaseHelper {
           ? categoryMap[categoryId] ??
               Category(
                 id: categoryId,
-                name: 'Unknown',
+                name: 'Uncategorized',
                 iconCodePoint: Icons.help_outline.codePoint,
-                isDefault: false,
+                isDefault: true,
                 isVisible: true,
               )
           : Category(
               id: 'unknown',
-              name: 'Unknown',
+              name: 'Uncategorized',
               iconCodePoint: Icons.help_outline.codePoint,
-              isDefault: false,
+              isDefault: true,
               isVisible: true,
             );
 
@@ -302,8 +335,26 @@ class DatabaseHelper {
         await db.insert('categories', category.toMap());
       }
     }
+
+    // Ensure 'Uncategorized' category exists
+    final uncategorized = await db.query(
+      'categories',
+      where: 'name = ?',
+      whereArgs: ['Uncategorized'],
+      limit: 1,
+    );
+    if (uncategorized.isEmpty) {
+      final newUncategorized = Category(
+        name: "Uncategorized",
+        iconCodePoint: Icons.help_outline.codePoint,
+        isDefault: true,
+        isVisible: true,
+      );
+      await db.insert('categories', newUncategorized.toMap());
+    }
   }
 
+  // Implement the missing addDefaultAccounts method
   Future<void> addDefaultAccounts() async {
     final db = await instance.database;
     for (var account in defaultAccounts) {
