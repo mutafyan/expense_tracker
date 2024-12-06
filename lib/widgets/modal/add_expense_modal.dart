@@ -1,258 +1,246 @@
+// lib/widgets/modal/add_expense_modal.dart
 import 'package:expense_tracker/data/db_helper.dart';
+import 'package:expense_tracker/models/expense/expense.dart';
 import 'package:expense_tracker/models/account/account.dart';
-import 'package:expense_tracker/models/expense.dart';
-import 'package:expense_tracker/widgets/modal/account_picker.dart';
-import 'package:expense_tracker/widgets/modal/category_picker.dart';
+import 'package:expense_tracker/models/category/category.dart';
 import 'package:flutter/material.dart';
 
 class AddExpenseModal extends StatefulWidget {
+  final void Function(Expense) onAddExpense;
+
   const AddExpenseModal({super.key, required this.onAddExpense});
-  final void Function(Expense expense) onAddExpense;
 
   @override
-  State<StatefulWidget> createState() => _AddExpenseModalState();
+  State<AddExpenseModal> createState() => _AddExpenseModalState();
 }
 
 class _AddExpenseModalState extends State<AddExpenseModal> {
-  final _titleController = TextEditingController();
-  final _amountController = TextEditingController();
-  final dbHelper = DatabaseHelper.instance;
-  String? _titleError, _amountError;
-  DateTime? _pickedDate;
+  final _formKey = GlobalKey<FormState>();
+  String _title = '';
+  int _amount = 0;
+  DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
   Account? _selectedAccount;
-  List<Account> availableAccounts = [];
+
+  final dbHelper = DatabaseHelper.instance;
+
+  List<Category> _categories = [];
+  List<Account> _accounts = [];
 
   @override
   void initState() {
     super.initState();
-    _loadAccounts();
+    _loadCategoriesAndAccounts();
   }
 
-  void _goBack() {
-    Navigator.pop(context);
-  }
-
-  Future<void> _loadAccounts() async {
+  Future<void> _loadCategoriesAndAccounts() async {
+    final categories = await dbHelper.getAllCategories();
     final accounts = await dbHelper.getAllAccounts();
+
     setState(() {
-      availableAccounts = accounts;
-      if (availableAccounts.isNotEmpty) {
-        _selectedAccount = availableAccounts[0];
+      _categories = categories;
+      _accounts = accounts;
+      if (_categories.isNotEmpty) {
+        _selectedCategory = _categories.first;
+      }
+      if (_accounts.isNotEmpty) {
+        _selectedAccount = _accounts.first;
       }
     });
   }
 
-  void _saveNewExpense(String title, int amount) {
+  void _presentDatePicker() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (pickedDate != null && pickedDate != _selectedDate) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+    }
+  }
+
+  void _submit() async {
+    if (!_formKey.currentState!.validate() ||
+        _selectedCategory == null ||
+        _selectedAccount == null) {
+      return;
+    }
+    _formKey.currentState!.save();
+
     final newExpense = Expense(
-      title: title,
-      amount: amount,
-      date: _pickedDate!,
+      title: _title,
+      amount: _amount,
+      date: _selectedDate,
       category: _selectedCategory!,
       account: _selectedAccount!,
     );
 
     widget.onAddExpense(newExpense);
-    _goBack();
-  }
-
-  void _validateInput() {
-    int? amount = int.tryParse(_amountController.text);
-    String title = _titleController.text;
-
-    if (!(_validateTitle(title) &&
-        _validateAmount(amount) &&
-        _validateCategoryAndDate() &&
-        _validateAccount())) return;
-
-    _saveNewExpense(title, amount!);
-  }
-
-  bool _validateCategoryAndDate() {
-    if (_selectedCategory == null || _pickedDate == null) {
-      _showErrorDialog("Invalid input", "Please select a date and category.");
-      return false;
-    }
-    return true;
-  }
-
-  bool _validateAccount() {
-    if (_selectedAccount == null) {
-      _showErrorDialog("No account selected", "Please select an account.");
-      return false;
-    }
-    return true;
-  }
-
-  bool _validateAmount(int? amount) {
-    if (amount == null || amount <= 0) {
-      setState(() {
-        _amountError = "Please enter a valid positive amount.";
-      });
-      return false;
-    } else {
-      setState(() {
-        _amountError = null;
-      });
-      return true;
-    }
-  }
-
-  bool _validateTitle(String title) {
-    if (title.trim().isEmpty) {
-      setState(() {
-        _titleError = "Title cannot be empty.";
-      });
-      return false;
-    } else {
-      setState(() {
-        _titleError = null;
-      });
-      return true;
-    }
-  }
-
-  void _openDatePicker() async {
-    final now = DateTime.now();
-    final firstDate = DateTime(now.year - 1, now.month, now.day);
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: firstDate,
-      lastDate: now,
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("\"${newExpense.title}\" added successfully!")),
     );
-    setState(() {
-      _pickedDate = pickedDate;
-    });
-  }
-
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Okay"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _titleController.dispose();
-    super.dispose();
-  }
-
-  void _onCategorySelect(value) {
-    if (value != null) {
-      setState(() {
-        _selectedCategory = value;
-      });
-    }
-  }
-
-  void _onAccountSelect(value) {
-    if (value != null) {
-      setState(() {
-        _selectedAccount = value;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final keyboardSize = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, keyboardSize + 10),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _titleController,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimaryContainer),
-            maxLength: 50,
-            decoration: InputDecoration(
-              label: const Text("Enter Title"),
-              errorText: _titleError,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
             children: [
-              Expanded(
-                child: TextField(
-                  keyboardType: TextInputType.number,
-                  controller: _amountController,
-                  maxLength: 7,
-                  decoration: InputDecoration(
-                    prefixText: '֏ ',
-                    label: const Text("Enter Amount"),
-                    errorText: _amountError,
-                  ),
+              const Center(
+                child: Text(
+                  'Add New Expense',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: InkWell(
-                  onTap: _openDatePicker,
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: "Select Date",
-                      border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    // Expense Title
+                    TextFormField(
+                      decoration:
+                          const InputDecoration(labelText: 'Expense Title'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a title';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _title = value!.trim();
+                      },
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    const SizedBox(height: 16),
+                    // Expense Amount
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: 'Amount'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter an amount';
+                        }
+                        if (int.tryParse(value.trim()) == null ||
+                            int.parse(value.trim()) <= 0) {
+                          return 'Please enter a valid positive number';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _amount = int.parse(value!.trim());
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Date Picker
+                    Row(
                       children: [
-                        Text(
-                          _pickedDate == null
-                              ? "No date chosen"
-                              : formatter.format(_pickedDate!),
-                          style: const TextStyle(fontSize: 16),
+                        Expanded(
+                          child: Text(
+                            'Date: ${_selectedDate.toLocal()}'.split(' ')[0],
+                          ),
                         ),
-                        const Icon(Icons.calendar_today),
+                        TextButton(
+                          onPressed: _presentDatePicker,
+                          child: const Text('Choose Date'),
+                        ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    // Category Dropdown
+                    DropdownButtonFormField<Category>(
+                      decoration: const InputDecoration(labelText: 'Category'),
+                      value: _selectedCategory,
+                      items: _categories.map((Category category) {
+                        return DropdownMenuItem<Category>(
+                          value: category,
+                          child: Row(
+                            children: [
+                              Icon(
+                                IconData(
+                                  category.iconCodePoint,
+                                  fontFamily: 'MaterialIcons',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(category.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (Category? newValue) {
+                        setState(() {
+                          _selectedCategory = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Please select a category';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _selectedCategory = value;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Account Dropdown
+                    DropdownButtonFormField<Account>(
+                      decoration: const InputDecoration(labelText: 'Account'),
+                      value: _selectedAccount,
+                      items: _accounts.map((Account account) {
+                        return DropdownMenuItem<Account>(
+                          value: account,
+                          child: Row(
+                            children: [
+                              Icon(
+                                IconData(
+                                  account.iconData.codePoint,
+                                  fontFamily: 'MaterialIcons',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(account.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (Account? newValue) {
+                        setState(() {
+                          _selectedAccount = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Please select an account';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _selectedAccount = value;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _submit,
+                      child: const Text('Add Expense'),
+                    )
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: CategoryPicker(
-                  selectedCategory: _selectedCategory,
-                  onChange: _onCategorySelect,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: AccountPicker(
-                  selectedAccount: _selectedAccount,
-                  availableAccounts: availableAccounts,
-                  onChange: _onAccountSelect,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              const Spacer(),
-              TextButton(onPressed: _goBack, child: const Text("Cancel")),
-              ElevatedButton(
-                  onPressed: _validateInput, child: const Text("Save"))
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:expense_tracker/screens/settings/details/account_settings_screen.dart';
+import 'package:expense_tracker/screens/settings/details/category_settings_screen.dart';
 import 'package:expense_tracker/screens/settings/settings_item.dart';
 import 'package:flutter/material.dart';
 
@@ -23,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
             settingName: "Categories",
             subtitle: "Manage Categories",
             icon: Icons.category_outlined,
-            onPress: (context) {},
+            onPress: _openCategorySettings,
           ),
           // Add more SettingsItem widgets as needed
         ],
@@ -35,6 +36,13 @@ class SettingsScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (ctx) => const AccountSettingsScreen()),
+    );
+  }
+
+  void _openCategorySettings(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (ctx) => const CategorySettingsScreen()),
     );
   }
 }

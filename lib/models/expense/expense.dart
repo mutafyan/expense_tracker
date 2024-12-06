@@ -1,19 +1,10 @@
 import 'package:expense_tracker/models/account/account.dart';
-import 'package:flutter/material.dart';
+import 'package:expense_tracker/models/category/category.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 const uuid = Uuid();
 final formatter = DateFormat.yMd();
-
-enum Category { food, transport, health, leisure }
-
-const categoryIcons = {
-  Category.food: Icons.lunch_dining,
-  Category.transport: Icons.emoji_transportation,
-  Category.health: Icons.medication,
-  Category.leisure: Icons.movie,
-};
 
 class Expense {
   Expense({
@@ -25,7 +16,8 @@ class Expense {
     required this.account,
   }) : id = id ?? uuid.v4();
 
-  final String id, title;
+  final String id;
+  final String title;
   final int amount;
   final DateTime date;
   final Category category;
@@ -35,24 +27,27 @@ class Expense {
     return formatter.format(date);
   }
 
+  // Serialize to Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'title': title,
       'amount': amount,
       'date': date.toIso8601String(),
-      'category': category.index,
+      'category_id': category.id, // Reference by Category ID
       'account_id': account.id,
     };
   }
 
-  factory Expense.fromMap(Map<String, dynamic> map, Account account) {
+  // Deserialize from Map
+  factory Expense.fromMap(
+      Map<String, dynamic> map, Account account, Category category) {
     return Expense(
       id: map['id'],
       title: map['title'],
       amount: map['amount'],
       date: DateTime.parse(map['date']),
-      category: Category.values[map['category']],
+      category: category,
       account: account,
     );
   }

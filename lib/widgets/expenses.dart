@@ -1,3 +1,4 @@
+// lib/screens/home_screen.dart
 import 'package:expense_tracker/screens/settings/settings_screen.dart';
 import 'package:expense_tracker/widgets/account_manager/account_preview.dart';
 import 'package:expense_tracker/widgets/chart/collapsible.dart';
@@ -6,11 +7,12 @@ import 'package:expense_tracker/widgets/modal/add_expense_modal.dart';
 import 'package:expense_tracker/widgets/chart/expanded_chart.dart';
 import 'package:expense_tracker/widgets/chart/collapsed_chart.dart';
 import 'package:expense_tracker/widgets/expenses_list/expenses_list.dart';
-import 'package:expense_tracker/models/expense.dart';
+import 'package:expense_tracker/models/expense/expense.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:expense_tracker/models/category/category.dart';
 
 class Expenses extends StatefulWidget {
   const Expenses({super.key});
@@ -25,13 +27,14 @@ class _ExpensesState extends State<Expenses> {
   final dbHelper = DatabaseHelper.instance;
   List<Expense> _registeredExpenses = [];
   List<Account> _accounts = [];
+  List<Category> _categories = []; // Add this to hold categories
   final _scrollController = ScrollController();
   bool _isFabVisible = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // Load accounts and expenses from the database when initializing
+    _loadData(); // Load accounts, categories, and expenses from the database when initializing
     _scrollController.addListener(_onScroll);
   }
 
@@ -43,11 +46,16 @@ class _ExpensesState extends State<Expenses> {
   }
 
   Future<void> _loadData() async {
+    await dbHelper
+        .addDefaultCategories(); // Ensure default categories are added
     await dbHelper.addDefaultAccounts(); // Ensure default accounts are added
     final visibleAccounts = await _loadVisibleAccounts();
-    final expenses = await dbHelper.getAllExpenses(visibleAccounts);
+    final visibleCategories = await _loadVisibleCategories(); // Load categories
+    final expenses = await dbHelper.getAllExpenses(); // Corrected call
+
     setState(() {
       _accounts = visibleAccounts;
+      _categories = visibleCategories;
       _registeredExpenses = expenses;
     });
   }
@@ -60,11 +68,15 @@ class _ExpensesState extends State<Expenses> {
     return visibleAccounts;
   }
 
-  Future<void> _refreshAccounts() async {
-    final visibleAccounts = await _loadVisibleAccounts();
-    setState(() {
-      _accounts = visibleAccounts;
-    });
+  Future<List<Category>> _loadVisibleCategories() async {
+    final allCategories = await dbHelper.getAllCategories();
+    final visibleCategories =
+        allCategories.where((category) => category.isVisible).toList();
+    return visibleCategories;
+  }
+
+  Future<void> _refreshData() async {
+    await _loadData();
   }
 
   void _onScroll() {
@@ -108,10 +120,13 @@ class _ExpensesState extends State<Expenses> {
     final updatedAccount = expense.account;
     updatedAccount.deductExpense(expense.amount);
     await dbHelper.updateAccount(updatedAccount);
-    await _refreshAccounts();
+    await _refreshData();
     setState(() {
       _registeredExpenses.add(expense);
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("\"${expense.title}\" added successfully!")),
+    );
   }
 
   void _removeExpense(Expense expense) async {
@@ -120,7 +135,7 @@ class _ExpensesState extends State<Expenses> {
     await dbHelper.deleteExpense(expense.id);
     updatedAccount.addIncome(expense.amount);
     await dbHelper.updateAccount(updatedAccount);
-    await _refreshAccounts();
+    await _refreshData();
 
     setState(() {
       _registeredExpenses.removeAt(index);
@@ -141,7 +156,7 @@ class _ExpensesState extends State<Expenses> {
             await dbHelper.insertExpense(expense);
             updatedAccount.deductExpense(expense.amount);
             await dbHelper.updateAccount(updatedAccount);
-            await _refreshAccounts();
+            await _refreshData();
 
             setState(() {
               _registeredExpenses.insert(index, expense);
@@ -166,8 +181,7 @@ class _ExpensesState extends State<Expenses> {
                   context,
                   MaterialPageRoute(builder: (ctx) => const SettingsScreen()),
                 );
-                _refreshAccounts(); // Refresh data after returning from settings
-                _loadData(); // Reload data to reflect changes
+                await _refreshData(); // Refresh data after returning from settings
               },
               icon: const Icon(Icons.settings))
         ],
@@ -179,7 +193,7 @@ class _ExpensesState extends State<Expenses> {
             height: 100.0,
             child: AccountPreview(
               accounts: _accounts,
-              onAccountUpdated: _refreshAccounts,
+              onAccountUpdated: _refreshData,
             ),
           ),
           Expanded(
@@ -190,7 +204,10 @@ class _ExpensesState extends State<Expenses> {
                   pinned: false,
                   floating: false,
                   delegate: CollapsibleChartDelegate(
-                    expandedChart: ExpandedChart(expenses: _registeredExpenses),
+                    expandedChart: ExpandedChart(
+                      expenses: _registeredExpenses,
+                      categories: _categories, // Pass categories
+                    ),
                     collapsedChart:
                         CollapsedChart(expenses: _registeredExpenses),
                     expandedHeight: 200.0,

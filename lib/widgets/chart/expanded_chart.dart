@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/widgets/chart/chart_bar.dart';
-import 'package:expense_tracker/models/expense_bucket.dart';
-import 'package:expense_tracker/models/expense.dart';
+import 'package:expense_tracker/models/expense/expense_bucket.dart';
+import 'package:expense_tracker/models/expense/expense.dart';
+import 'package:expense_tracker/models/category/category.dart';
 
 class ExpandedChart extends StatelessWidget {
-  const ExpandedChart({super.key, required this.expenses});
+  const ExpandedChart({
+    super.key,
+    required this.expenses,
+    required this.categories,
+  });
 
   final List<Expense> expenses;
+  final List<Category> categories;
 
   List<ExpenseBucket> get buckets {
-    return [
-      ExpenseBucket.forCategory(expenses, Category.food),
-      ExpenseBucket.forCategory(expenses, Category.leisure),
-      ExpenseBucket.forCategory(expenses, Category.health),
-      ExpenseBucket.forCategory(expenses, Category.transport),
-    ];
+    return categories
+        .map((category) => ExpenseBucket.forCategory(expenses, category))
+        .toList();
   }
 
   int get maxTotalExpense {
@@ -72,10 +75,13 @@ class ExpandedChart extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     for (final bucket in buckets)
-                      ChartBar(
-                        fill: maxTotalExpense == 0
-                            ? 0
-                            : bucket.totalAmount / maxTotalExpense,
+                      Expanded(
+                        child: ChartBar(
+                          label: bucket.category.name,
+                          fill: maxTotalExpense == 0
+                              ? 0
+                              : bucket.totalAmount / maxTotalExpense,
+                        ),
                       )
                   ],
                 ),
@@ -91,15 +97,20 @@ class ExpandedChart extends StatelessWidget {
                             padding: EdgeInsets.symmetric(
                               horizontal: availableHeight * 0.05,
                             ),
-                            child: Icon(
-                              categoryIcons[bucket.category],
-                              size: iconSectionHeight * 0.6,
-                              color: isDarkMode
-                                  ? Theme.of(context).colorScheme.secondary
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(0.7),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  IconData(bucket.category.iconCodePoint,
+                                      fontFamily: 'MaterialIcons'),
+                                  size: iconSectionHeight * 0.6,
+                                  color: isDarkMode
+                                      ? Theme.of(context).colorScheme.secondary
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.7),
+                                ),
+                              ],
                             ),
                           ),
                         ),
