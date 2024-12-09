@@ -9,17 +9,18 @@ class AccountPreview extends StatelessWidget {
   final bool isAddAccountEnabled; // Indicates if adding accounts is allowed
 
   const AccountPreview({
-    Key? key,
+    super.key,
     required this.accounts,
     required this.onAccountUpdated,
     required this.onAddAccount,
     required this.isAddAccountEnabled,
-  }) : super(key: key);
+  });
 
   void _openAddIncomeModal(BuildContext context, Account account) {
     showModalBottomSheet(
       useSafeArea: true,
       showDragHandle: true,
+      isScrollControlled: true,
       context: context,
       builder: (context) => AddIncomeModal(
         account: account,

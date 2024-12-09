@@ -33,53 +33,55 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          children: [
-            const Center(
-              child: Text(
-                'Add Income',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        top: 16,
+        left: 16,
+        right: 16,
+      ),
+      child: Column(
+        children: [
+          const Center(
+            child: Text(
+              'Add Income',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // Income Amount
-                  TextFormField(
-                    decoration: const InputDecoration(
-                        labelText: 'Income Amount', prefix: Text("֏ ")),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an amount';
-                      }
-                      if (int.tryParse(value.trim()) == null ||
-                          int.parse(value.trim()) <= 0) {
-                        return 'Please enter a valid positive number';
-                      }
-                      return null;
-                    },
-                    onSaved: (value) {
-                      _incomeAmount = int.parse(value!.trim());
-                    },
+          ),
+          const SizedBox(height: 16),
+          Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Income Amount',
+                    prefix: Text("֏ "),
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('Add Income'),
-                  )
-                ],
-              ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter an amount';
+                    }
+                    if (int.tryParse(value.trim()) == null ||
+                        int.parse(value.trim()) <= 0) {
+                      return 'Please enter a valid positive number';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _incomeAmount = int.parse(value!.trim());
+                  },
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _submit,
+                  child: const Text('Add Income'),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
