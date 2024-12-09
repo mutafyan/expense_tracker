@@ -1,3 +1,4 @@
+import 'package:expense_tracker/widgets/modal/amount_input.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
@@ -23,7 +24,7 @@ class AddTransactionModal extends StatefulWidget {
 class _AddTransactionModalState extends State<AddTransactionModal> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
-  int _amount = 0;
+  int _enteredAmount = 0;
   DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
   Account? _selectedAccount;
@@ -53,7 +54,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
 
     final newTransaction = FinancialTransaction(
       title: _title,
-      amount: _amount,
+      amount: _enteredAmount,
       date: _selectedDate,
       category: _selectedCategory!,
       account: _selectedAccount!,
@@ -68,6 +69,10 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       SnackBar(
           content: Text("\"${newTransaction.title}\" added successfully!")),
     );
+  }
+
+  void _onAmountEntered(int newAmount) {
+    _enteredAmount = newAmount;
   }
 
   @override
@@ -116,22 +121,8 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Amount'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an amount';
-                    }
-                    if (int.tryParse(value.trim()) == null ||
-                        int.parse(value.trim()) <= 0) {
-                      return 'Please enter a valid positive number';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _amount = int.parse(value!.trim());
-                  },
+                AmountInput(
+                  onAmountEntered: _onAmountEntered,
                 ),
                 const SizedBox(height: 16),
                 Row(

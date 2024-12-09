@@ -9,7 +9,6 @@ import 'package:expense_tracker/widgets/transactions_list/transactions_list.dart
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/data/db_helper.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:expense_tracker/models/category/category.dart';
@@ -61,7 +60,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<List<Account>> _loadVisibleAccounts() async {
     try {
-      return await dbHelper.getAllAccounts(includeHidden: false);
+      List<Account> newAccounts =
+          await dbHelper.getAllAccounts(includeHidden: false);
+      setState(() {
+        _accounts = newAccounts;
+      });
+      return _accounts;
     } catch (e) {
       setState(() {
         _error = 'Failed to load accounts: $e';

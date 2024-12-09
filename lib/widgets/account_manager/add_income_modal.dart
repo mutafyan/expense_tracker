@@ -1,5 +1,6 @@
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
+import 'package:expense_tracker/widgets/modal/amount_input.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
@@ -62,6 +63,10 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
     Navigator.pop(context);
   }
 
+  void _onAmountEntered(int newAmount) {
+    _incomeAmount = newAmount;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -84,26 +89,7 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
             key: _formKey,
             child: Column(
               children: [
-                TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'Income Amount',
-                    prefix: Text("֏ "),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an amount';
-                    }
-                    if (int.tryParse(value.trim()) == null ||
-                        int.parse(value.trim()) <= 0) {
-                      return 'Please enter a valid positive number';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _incomeAmount = int.parse(value!.trim());
-                  },
-                ),
+                AmountInput(onAmountEntered: _onAmountEntered),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _submit,
