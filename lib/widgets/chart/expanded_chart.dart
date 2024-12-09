@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/widgets/chart/chart_bar.dart';
 import 'package:expense_tracker/models/expense/expense_bucket.dart';
-import 'package:expense_tracker/models/expense/expense.dart';
+import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/category/category.dart';
 
 class ExpandedChart extends StatelessWidget {
   const ExpandedChart({
     super.key,
-    required this.expenses,
+    required this.transactions,
     required this.categories,
   });
 
-  final List<Expense> expenses;
+  final List<FinancialTransaction> transactions;
   final List<Category> categories;
 
   List<ExpenseBucket> get buckets {
+    // Filter to only expense transactions
+    final expenseTransactions = transactions
+        .where((t) => t.type.toString().contains('expense'))
+        .toList();
+
     return categories
-        .map((category) => ExpenseBucket.forCategory(expenses, category))
+        .map((category) =>
+            ExpenseBucket.forCategory(expenseTransactions, category))
         .toList();
   }
 
@@ -36,8 +42,6 @@ class ExpandedChart extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-
-        // Define proportions for each section
         final barSectionHeight = availableHeight * 0.8;
 
         return Container(
@@ -73,7 +77,7 @@ class ExpandedChart extends StatelessWidget {
                       Expanded(
                         child: ChartBar(
                           label: buckets[i].category.name,
-                          showLabel: buckets.length < 5 ? true : false,
+                          showLabel: buckets.length < 5,
                           fill: totalExpenses == 0
                               ? 0
                               : buckets[i].totalAmount / totalExpenses,

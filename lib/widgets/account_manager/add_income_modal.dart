@@ -1,6 +1,9 @@
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:flutter/material.dart';
+import 'package:expense_tracker/models/transaction/financial_transaction.dart';
+import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
+import 'package:expense_tracker/models/category/category.dart';
 
 class AddIncomeModal extends StatefulWidget {
   final Account account;
@@ -21,12 +24,40 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
   int _incomeAmount = 0;
   final dbHelper = DatabaseHelper.instance;
 
+  Future<Category> _getUncategorizedCategory() async {
+    final categories = await dbHelper.getAllCategories();
+    // Assuming 'Uncategorized' category always exists due to initial setup
+    return categories.firstWhere(
+      (c) => c.name == 'Uncategorized',
+      orElse: () => Category(
+        name: "Uncategorized",
+        iconCodePoint: Icons.help_outline.codePoint,
+        isDefault: true,
+        isVisible: true,
+      ),
+    );
+  }
+
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
+    // Update the account balance
     widget.account.addIncome(_incomeAmount);
     await dbHelper.updateAccount(widget.account);
+
+    // Insert a transaction record for this income
+    final uncategorizedCategory = await _getUncategorizedCategory();
+    final incomeTransaction = FinancialTransaction(
+      title: 'Income to ${widget.account.name}',
+      amount: _incomeAmount,
+      date: DateTime.now(),
+      category: uncategorizedCategory,
+      account: widget.account,
+      type: FinancialTransactionType.income,
+    );
+    await dbHelper.insertTransaction(incomeTransaction);
+
     widget.onIncomeAdded();
     Navigator.pop(context);
   }
