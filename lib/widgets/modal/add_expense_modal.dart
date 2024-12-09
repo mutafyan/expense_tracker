@@ -81,9 +81,6 @@ class _AddExpenseModalState extends State<AddExpenseModal> {
 
     widget.onAddExpense(newExpense);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("\"${newExpense.title}\" added successfully!")),
-    );
   }
 
   @override

@@ -1,4 +1,3 @@
-// lib/widgets/chart/chart_bar.dart
 import 'package:flutter/material.dart';
 
 class ChartBar extends StatelessWidget {
@@ -7,13 +6,13 @@ class ChartBar extends StatelessWidget {
     required this.fill,
     required this.label,
     required this.iconCodePoint,
-    this.showLabel = true, // New parameter to control label visibility
+    this.showLabel = true,
   });
 
   final double fill; // Should be between 0.0 and 1.0
   final String label;
   final int iconCodePoint;
-  final bool showLabel; // Determines if the label should be displayed
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +35,7 @@ class ChartBar extends StatelessWidget {
               height: barHeight,
               width: 10,
               child: Stack(
-                alignment:
-                    Alignment.bottomCenter, // Start filling from the bottom
+                alignment: Alignment.bottomCenter,
                 children: [
                   // Background bar
                   Container(
@@ -65,7 +63,6 @@ class ChartBar extends StatelessWidget {
               ),
             ),
             SizedBox(height: constraints.maxHeight * 0.02),
-            // Category Icon
             Icon(
               IconData(
                 iconCodePoint,

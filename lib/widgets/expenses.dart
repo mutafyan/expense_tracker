@@ -133,9 +133,6 @@ class _ExpensesState extends State<Expenses> {
     updatedAccount.deductExpense(expense.amount);
     await dbHelper.updateAccount(updatedAccount);
     await _refreshData();
-    setState(() {
-      _registeredExpenses.add(expense);
-    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("\"${expense.title}\" added successfully!")),
     );

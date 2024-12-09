@@ -1,5 +1,3 @@
-// lib/widgets/account_manager/account_preview.dart
-
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/widgets/account_manager/add_income_modal.dart';
 import 'package:flutter/material.dart';
