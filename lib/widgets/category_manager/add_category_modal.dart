@@ -58,13 +58,14 @@ class _AddCategoryModalState extends State<AddCategoryModal> {
           padding: const EdgeInsets.all(16),
           child: Wrap(
             children: [
-              const Center(
-                child: Text(
-                  'Add New Category',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+              Center(
+                child: Text('Add New Category',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium!
+                        .copyWith(fontSize: 18)),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 40),
               Form(
                 key: _formKey,
                 child: Column(

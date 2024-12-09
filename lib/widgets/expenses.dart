@@ -1,5 +1,6 @@
 import 'package:expense_tracker/screens/settings/settings_screen.dart';
 import 'package:expense_tracker/widgets/account_manager/account_preview.dart';
+import 'package:expense_tracker/widgets/account_manager/add_account_modal.dart';
 import 'package:expense_tracker/widgets/chart/collapsible.dart';
 import 'package:expense_tracker/widgets/modal/add_button.dart';
 import 'package:expense_tracker/widgets/modal/add_expense_modal.dart';
@@ -29,6 +30,8 @@ class _ExpensesState extends State<Expenses> {
   List<Category> _categories = [];
   final _scrollController = ScrollController();
   bool _isFabVisible = true;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -49,7 +52,7 @@ class _ExpensesState extends State<Expenses> {
         .addDefaultCategories(); // Ensure default categories are added
     await dbHelper.addDefaultAccounts(); // Ensure default accounts are added
     final visibleAccounts = await _loadVisibleAccounts();
-    final visibleCategories = await _loadVisibleCategories(); // Load categories
+    final visibleCategories = await _loadVisibleCategories();
     final expenses = await dbHelper.getAllExpenses();
 
     setState(() {
@@ -60,11 +63,21 @@ class _ExpensesState extends State<Expenses> {
   }
 
   Future<List<Account>> _loadVisibleAccounts() async {
-    final allAccounts = await dbHelper.getAllAccounts();
-
-    final visibleAccounts =
-        allAccounts.where((account) => account.isVisible).toList();
-    return visibleAccounts;
+    try {
+      final visibleAccounts =
+          await dbHelper.getAllAccounts(includeHidden: false);
+      setState(() {
+        _accounts = visibleAccounts;
+        _isLoading = false;
+      });
+      return visibleAccounts;
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load accounts: $e';
+        _isLoading = false;
+      });
+      return List<Account>.empty();
+    }
   }
 
   Future<List<Category>> _loadVisibleCategories() async {
@@ -166,8 +179,21 @@ class _ExpensesState extends State<Expenses> {
     );
   }
 
+  void _openAddAccountModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => AddAccountModal(
+        onAccountAdded: () async {
+          await _loadVisibleAccounts();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isAddAccountEnabled = _accounts.length < 10;
     return Scaffold(
       floatingActionButton:
           _isFabVisible ? AddButton(onPress: _openAddExpenseModal) : null,
@@ -186,42 +212,59 @@ class _ExpensesState extends State<Expenses> {
         ],
         title: const Text("Expense Tracker"),
       ),
-      body: Column(
-        children: [
-          SizedBox(
-            height: 100.0,
-            child: AccountPreview(
-              accounts: _accounts,
-              onAccountUpdated: _refreshData,
-            ),
-          ),
-          Expanded(
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                SliverPersistentHeader(
-                  pinned: false,
-                  floating: false,
-                  delegate: CollapsibleChartDelegate(
-                    expandedChart: ExpandedChart(
-                      expenses: _registeredExpenses,
-                      categories: _categories,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!))
+              : Column(
+                  children: [
+                    SizedBox(
+                      height: 100.0,
+                      child: AccountPreview(
+                        accounts: _accounts,
+                        onAccountUpdated: _refreshData,
+                        onAddAccount: _openAddAccountModal,
+                        isAddAccountEnabled: isAddAccountEnabled,
+                      ),
                     ),
-                    collapsedChart:
-                        CollapsedChart(expenses: _registeredExpenses),
-                    expandedHeight: 200.0,
-                    collapsedHeight: 20.0,
-                  ),
+                    const Divider(),
+                    _registeredExpenses.isNotEmpty
+                        ? Expanded(
+                            child: CustomScrollView(
+                              controller: _scrollController,
+                              slivers: [
+                                SliverPersistentHeader(
+                                  pinned: false,
+                                  floating: false,
+                                  delegate: CollapsibleChartDelegate(
+                                    expandedChart: ExpandedChart(
+                                      expenses: _registeredExpenses,
+                                      categories: _categories,
+                                    ),
+                                    collapsedChart: CollapsedChart(
+                                        expenses: _registeredExpenses),
+                                    expandedHeight: 200.0,
+                                    collapsedHeight: 20.0,
+                                  ),
+                                ),
+                                ExpensesList(
+                                  expenses: _registeredExpenses,
+                                  onRemoveExpense: _removeExpense,
+                                )
+                              ],
+                            ),
+                          )
+                        : Expanded(
+                            child: Center(
+                              child: Text(
+                                "No recorded expenses\n Add a new one!",
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
+                            ),
+                          )
+                  ],
                 ),
-                ExpensesList(
-                  expenses: _registeredExpenses,
-                  onRemoveExpense: _removeExpense,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

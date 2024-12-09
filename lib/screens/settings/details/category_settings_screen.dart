@@ -1,7 +1,3 @@
-// lib/screens/settings/category_settings_screen.dart
-
-import 'dart:math';
-
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/category/category.dart';
 import 'package:expense_tracker/widgets/category_manager/add_category_modal.dart';
@@ -150,7 +146,6 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
               ? Center(child: Text(_error!))
               : Column(
                   children: [
-                    // Add Category Button with Disabled State and Informative Note
                     // Category List
                     Expanded(
                       child: _categories.isEmpty
@@ -202,19 +197,26 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
                               },
                             ),
                     ),
-                    const SizedBox(
-                      width: double.infinity,
-                      height: 20,
-                      child: Text(
-                        "Maximum of 10 Categories may be active",
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
                     const Divider(),
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                       child: Column(
                         children: [
+                          isLimitReached
+                              ? Text(
+                                  'You have reached the maximum of 10 active categories.',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                )
+                              : Text(
+                                  'Maximum 10 active categories allowed',
+                                  style:
+                                      Theme.of(context).textTheme.labelMedium,
+                                ),
+                          const SizedBox(height: 8),
                           ElevatedButton.icon(
                             onPressed:
                                 isLimitReached ? null : _openAddCategoryModal,
@@ -226,28 +228,11 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
                               textStyle: const TextStyle(fontSize: 16),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          if (isLimitReached)
-                            Text(
-                              'You have reached the maximum of 10 active categories.',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
                         ],
                       ),
                     ),
                   ],
                 ),
-      // Floating Action Button is replaced by a button in the body for better control
-      // If you prefer to keep the FAB, you can modify it similarly
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: isLimitReached ? null : _openAddCategoryModal,
-      //   child: const Icon(Icons.add),
-      //   tooltip: 'Add Category',
-      // ),
     );
   }
 }

@@ -235,6 +235,74 @@ class DatabaseHelper {
     return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 
+  // Account CRUD Operations
+
+  Future<List<Account>> getAllAccounts({bool includeHidden = true}) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'accounts',
+      where: includeHidden ? null : 'isVisible = ?',
+      whereArgs: includeHidden ? null : [1],
+    );
+    return result.map((map) => Account.fromMap(map)).toList();
+  }
+
+  Future<int> insertAccount(Account account) async {
+    final db = await instance.database;
+
+    // Check if the account limit is reached
+    final activeAccountsCount = Sqflite.firstIntValue(await db
+            .rawQuery('SELECT COUNT(*) FROM accounts WHERE isVisible = 1')) ??
+        0;
+
+    if (activeAccountsCount >= 10 && account.isVisible) {
+      throw Exception('Maximum of 10 active accounts reached.');
+    }
+
+    return await db.insert('accounts', account.toMap());
+  }
+
+  Future<int> updateAccount(Account account) async {
+    final db = await instance.database;
+
+    // If setting isVisible to true, ensure the limit is not exceeded
+    if (account.isVisible) {
+      final activeAccountsCount = Sqflite.firstIntValue(await db.rawQuery(
+              'SELECT COUNT(*) FROM accounts WHERE isVisible = 1 AND id != ?',
+              [account.id])) ??
+          0;
+
+      if (activeAccountsCount >= 10) {
+        throw Exception('Maximum of 10 active accounts reached.');
+      }
+    }
+
+    return await db.update(
+      'accounts',
+      account.toMap(),
+      where: 'id = ?',
+      whereArgs: [account.id],
+    );
+  }
+
+  Future<int> deleteAccount(String id) async {
+    final db = await instance.database;
+
+    // Prevent deletion of default accounts
+    final account =
+        await db.query('accounts', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (account.isEmpty) {
+      throw Exception('Account not found.');
+    }
+
+    if (account.first['isDefault'] == 1) {
+      throw Exception('Cannot delete a default account.');
+    }
+
+    // Deleting an account will automatically delete associated expenses due to ON DELETE CASCADE
+    return await db.delete('accounts', where: 'id = ?', whereArgs: [id]);
+  }
+
   // Expense CRUD Operations
 
   Future<List<Expense>> getAllExpenses() async {
@@ -286,40 +354,6 @@ class DatabaseHelper {
   Future<int> deleteExpense(String id) async {
     final db = await instance.database;
     return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Account CRUD Operations
-
-  Future<List<Account>> getAllAccounts({bool includeHidden = true}) async {
-    final db = await instance.database;
-    final result = await db.query(
-      'accounts',
-      where: includeHidden ? null : 'isVisible = ?',
-      whereArgs: includeHidden ? null : [1],
-    );
-    return result.map((map) => Account.fromMap(map)).toList();
-  }
-
-  Future<int> insertAccount(Account account) async {
-    final db = await instance.database;
-    return await db.insert('accounts', account.toMap());
-  }
-
-  Future<int> updateAccount(Account account) async {
-    final db = await instance.database;
-    return await db.update(
-      'accounts',
-      account.toMap(),
-      where: 'id = ?',
-      whereArgs: [account.id],
-    );
-  }
-
-  Future<int> deleteAccount(String id) async {
-    final db = await instance.database;
-    // Delete associated expenses first
-    await db.delete('expenses', where: 'account_id = ?', whereArgs: [id]);
-    return await db.delete('accounts', where: 'id = ?', whereArgs: [id]);
   }
 
   // Ensure default categories are added (in case of initial setup)

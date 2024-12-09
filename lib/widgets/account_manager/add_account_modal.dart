@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class AddAccountModal extends StatefulWidget {
   final VoidCallback onAccountAdded;
 
-  const AddAccountModal({super.key, required this.onAccountAdded});
+  const AddAccountModal({required this.onAccountAdded, super.key});
 
   @override
   State<AddAccountModal> createState() => _AddAccountModalState();
@@ -13,39 +13,51 @@ class AddAccountModal extends StatefulWidget {
 
 class _AddAccountModalState extends State<AddAccountModal> {
   final _formKey = GlobalKey<FormState>();
-  String _name = '';
-  IconData _selectedIcon = Icons.account_balance_rounded;
+  String _accountName = '';
+  IconData _selectedIcon = Icons.account_balance_wallet;
+  bool _isSubmitting = false;
+  String? _error;
   final dbHelper = DatabaseHelper.instance;
 
-  // Define a list of icons for selection
   final List<IconData> _availableIcons = [
-    Icons.account_balance_wallet_outlined,
+    Icons.account_balance_wallet,
     Icons.credit_card,
     Icons.money,
-    Icons.savings,
-    Icons.paid,
-    Icons.attach_money,
     Icons.account_balance,
-    Icons.money_off,
-    Icons.payments_outlined,
-    Icons.paypal_outlined
+    Icons.savings,
+    Icons.wallet,
+    Icons.attach_money,
+    Icons.paypal_outlined,
+    Icons.currency_ruble,
+    Icons.currency_bitcoin
   ];
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
 
     final newAccount = Account(
-      name: _name,
+      name: _accountName,
       balance: 0,
       isDefault: false,
       isVisible: true,
       iconData: _selectedIcon,
     );
 
-    await dbHelper.insertAccount(newAccount);
-    widget.onAccountAdded();
-    Navigator.pop(context);
+    try {
+      await dbHelper.insertAccount(newAccount);
+      widget.onAccountAdded();
+      Navigator.of(context).pop();
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isSubmitting = false;
+      });
+    }
   }
 
   @override
@@ -58,32 +70,44 @@ class _AddAccountModalState extends State<AddAccountModal> {
           padding: const EdgeInsets.all(16),
           child: Wrap(
             children: [
-              const Center(
-                child: Text(
-                  'Add New Account',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Center(
+                  child: Text('Add New Account',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium!
+                          .copyWith(fontSize: 18))),
+              const SizedBox(height: 40),
+              if (_error != null)
+                Center(
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     TextFormField(
-                      decoration:
-                          const InputDecoration(labelText: 'Account Name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Account Name',
+                        border: OutlineInputBorder(),
+                      ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter an account name';
+                        if (value == null ||
+                            value.trim().isEmpty ||
+                            value.trim().length < 2) {
+                          return 'Please enter a valid account name (min 2 characters).';
                         }
                         return null;
                       },
                       onSaved: (value) {
-                        _name = value!.trim();
+                        _accountName = value!.trim();
                       },
                     ),
                     const SizedBox(height: 16),
-                    // Icon Selection
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -110,9 +134,13 @@ class _AddAccountModalState extends State<AddAccountModal> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: _submit,
-                      child: const Text('Add Account'),
-                    )
+                      onPressed: _isSubmitting ? null : _submit,
+                      child: _isSubmitting
+                          ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                          : const Text('Add Account'),
+                    ),
                   ],
                 ),
               ),
