@@ -1,25 +1,25 @@
-import 'package:expense_tracker/models/expense/expense.dart';
-import 'package:expense_tracker/widgets/expenses_list/expense_item.dart';
+import 'package:expense_tracker/widgets/transactions_list/transaction_item.dart';
 import 'package:flutter/material.dart';
+import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 
-class ExpensesList extends StatelessWidget {
-  const ExpensesList({
+class TransactionsList extends StatelessWidget {
+  const TransactionsList({
     super.key,
-    required this.expenses,
-    required this.onRemoveExpense,
+    required this.transactions,
+    required this.onRemoveTransaction,
   });
 
-  final List<Expense> expenses;
-  final void Function(Expense expense) onRemoveExpense;
+  final List<FinancialTransaction> transactions;
+  final void Function(FinancialTransaction transaction) onRemoveTransaction;
 
   @override
   Widget build(BuildContext context) {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (BuildContext context, int index) {
-          final expense = expenses[index];
+          final tx = transactions[index];
           return Dismissible(
-            key: ValueKey(expense),
+            key: ValueKey(tx.id),
             direction: DismissDirection.endToStart,
             background: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -39,12 +39,12 @@ class ExpensesList extends StatelessWidget {
               ),
             ),
             onDismissed: (direction) {
-              onRemoveExpense(expense);
+              onRemoveTransaction(tx);
             },
-            child: ExpenseItem(expense),
+            child: TransactionItem(transaction: tx),
           );
         },
-        childCount: expenses.length,
+        childCount: transactions.length,
       ),
     );
   }

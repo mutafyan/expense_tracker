@@ -1,12 +1,17 @@
-import 'package:expense_tracker/models/expense/expense.dart';
 import 'package:expense_tracker/models/category/category.dart';
+import 'package:expense_tracker/models/transaction/financial_transaction.dart';
+import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
 
 class ExpenseBucket {
   final Category category;
   final int totalAmount;
 
-  ExpenseBucket.forCategory(List<Expense> expenses, this.category)
-      : totalAmount = expenses
-            .where((expense) => expense.category.id == category.id)
-            .fold(0, (sum, expense) => sum + expense.amount);
+  // Constructing an ExpenseBucket from a list of transactions.
+  ExpenseBucket.forCategory(
+      List<FinancialTransaction> transactions, this.category)
+      : totalAmount = transactions
+            .where((t) =>
+                t.category.id == category.id &&
+                t.type == FinancialTransactionType.expense)
+            .fold(0, (sum, t) => sum + t.amount);
 }

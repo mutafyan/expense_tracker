@@ -1,4 +1,4 @@
-import 'package:expense_tracker/widgets/expenses.dart';
+import 'package:expense_tracker/widgets/transactions_screen.dart';
 import 'package:flutter/material.dart';
 
 var kColorScheme =
@@ -62,7 +62,7 @@ void main() {
               ),
             ),
       ),
-      home: const Expenses(),
+      home: const TransactionsScreen(),
     ),
   );
 }

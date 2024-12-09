@@ -99,7 +99,7 @@ class AccountPreview extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    "֏${account.displayBalance}",
+                    "${account.displayBalance} ֏",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -113,7 +113,7 @@ class AccountPreview extends StatelessWidget {
             return GestureDetector(
               onTap: onAddAccount,
               child: Container(
-                width: 75,
+                width: 65,
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: Theme.of(context).colorScheme.secondary,
