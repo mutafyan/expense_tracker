@@ -112,8 +112,7 @@ class AccountPreview extends StatelessWidget {
             return GestureDetector(
               onTap: onAddAccount,
               child: Container(
-                width: 150,
-                margin: const EdgeInsets.only(right: 8),
+                width: 75,
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: Theme.of(context).colorScheme.secondary,
