@@ -1,6 +1,6 @@
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
-import 'package:expense_tracker/widgets/modal/amount_input.dart';
+import 'package:expense_tracker/widgets/expense_manager/amount_input.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';

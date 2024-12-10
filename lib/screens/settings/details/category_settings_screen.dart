@@ -213,8 +213,13 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
                                 )
                               : Text(
                                   'Maximum 10 active categories allowed',
-                                  style:
-                                      Theme.of(context).textTheme.labelMedium,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium!
+                                      .copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer),
                                 ),
                           const SizedBox(height: 8),
                           ElevatedButton.icon(

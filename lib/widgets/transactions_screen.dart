@@ -3,8 +3,8 @@ import 'package:expense_tracker/screens/settings/settings_screen.dart';
 import 'package:expense_tracker/widgets/account_manager/account_preview.dart';
 import 'package:expense_tracker/widgets/account_manager/add_account_modal.dart';
 import 'package:expense_tracker/widgets/chart/expanded_chart.dart';
-import 'package:expense_tracker/widgets/modal/add_button.dart';
-import 'package:expense_tracker/widgets/modal/add_transaction_modal.dart';
+import 'package:expense_tracker/widgets/expense_manager/add_button.dart';
+import 'package:expense_tracker/widgets/expense_manager/add_transaction_modal.dart';
 import 'package:expense_tracker/widgets/transactions_list/transactions_list.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/account/account.dart';
@@ -246,48 +246,60 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     ),
                     const Divider(height: 1),
-                    Expanded(
-                      child: NestedScrollView(
-                        controller: _scrollController,
-                        headerSliverBuilder: (context, innerBoxIsScrolled) {
-                          return [
-                            SliverOverlapAbsorber(
-                              handle: NestedScrollView
-                                  .sliverOverlapAbsorberHandleFor(context),
-                              sliver: SliverAppBar(
-                                expandedHeight: 200,
-                                floating: false,
-                                pinned: false,
-                                snap: false,
-                                backgroundColor: Colors.transparent,
-                                flexibleSpace: FlexibleSpaceBar(
-                                  background: ExpandedChart(
-                                    transactions: _registeredTransactions,
-                                    categories: _categories,
-                                  ),
-                                ),
+                    _registeredTransactions.isEmpty
+                        ? const Expanded(
+                            child: Center(
+                              child: Text(
+                                "No registered transactions, create a new one!",
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                          ];
-                        },
-                        body: Builder(
-                          builder: (context) {
-                            return CustomScrollView(
-                              slivers: [
-                                SliverOverlapInjector(
-                                  handle: NestedScrollView
-                                      .sliverOverlapAbsorberHandleFor(context),
-                                ),
-                                TransactionsList(
-                                  transactions: _registeredTransactions,
-                                  onRemoveTransaction: _removeTransaction,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+                          )
+                        : Expanded(
+                            child: NestedScrollView(
+                              controller: _scrollController,
+                              headerSliverBuilder:
+                                  (context, innerBoxIsScrolled) {
+                                return [
+                                  SliverOverlapAbsorber(
+                                    handle: NestedScrollView
+                                        .sliverOverlapAbsorberHandleFor(
+                                            context),
+                                    sliver: SliverAppBar(
+                                      expandedHeight: 200,
+                                      floating: false,
+                                      pinned: false,
+                                      snap: false,
+                                      backgroundColor: Colors.transparent,
+                                      flexibleSpace: FlexibleSpaceBar(
+                                        background: ExpandedChart(
+                                          transactions: _registeredTransactions,
+                                          categories: _categories,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ];
+                              },
+                              body: Builder(
+                                builder: (context) {
+                                  return CustomScrollView(
+                                    slivers: [
+                                      SliverOverlapInjector(
+                                        handle: NestedScrollView
+                                            .sliverOverlapAbsorberHandleFor(
+                                                context),
+                                      ),
+                                      TransactionsList(
+                                        transactions: _registeredTransactions,
+                                        onRemoveTransaction: _removeTransaction,
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
                   ],
                 ),
     );

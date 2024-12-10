@@ -74,6 +74,10 @@ class _AddCategoryModalState extends State<AddCategoryModal> {
                     TextFormField(
                       decoration:
                           const InputDecoration(labelText: 'Category Name'),
+                      style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter a category name';

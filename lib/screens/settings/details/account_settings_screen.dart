@@ -212,7 +212,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                 )
                               : Text(
                                   'Maximum 10 active accounts are allowed',
-                                  style: Theme.of(context).textTheme.labelSmall,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall!
+                                      .copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer),
                                   textAlign: TextAlign.center,
                                 ),
                           const SizedBox(height: 8),

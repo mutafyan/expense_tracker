@@ -1,4 +1,4 @@
-import 'package:expense_tracker/widgets/modal/amount_input.dart';
+import 'package:expense_tracker/widgets/expense_manager/amount_input.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
@@ -110,6 +110,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               children: [
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Title'),
+                  style: TextStyle(
+                      color:
+                          Theme.of(context).colorScheme.onSecondaryContainer),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter a title';

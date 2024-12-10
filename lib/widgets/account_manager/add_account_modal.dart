@@ -95,6 +95,10 @@ class _AddAccountModalState extends State<AddAccountModal> {
                         labelText: 'Account Name',
                         border: OutlineInputBorder(),
                       ),
+                      style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer),
                       validator: (value) {
                         if (value == null ||
                             value.trim().isEmpty ||
