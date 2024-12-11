@@ -1,13 +1,17 @@
+import 'package:expense_tracker/provider/currency_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AmountInput extends StatelessWidget {
+class AmountInput extends ConsumerWidget {
   const AmountInput({super.key, required this.onAmountEntered});
   final Function(int) onAmountEntered;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedCurrency = ref.watch(currencyProvider);
     return TextFormField(
-      decoration:
-          const InputDecoration(labelText: 'Amount', prefix: Text("֏ ")),
+      decoration: InputDecoration(
+          labelText: 'Amount',
+          prefix: Text("${selectedCurrency.displaySymbol} ")),
       keyboardType: TextInputType.number,
       style:
           TextStyle(color: Theme.of(context).colorScheme.onSecondaryContainer),

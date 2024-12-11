@@ -1,5 +1,6 @@
 import 'package:expense_tracker/screens/settings/details/account_settings_screen.dart';
 import 'package:expense_tracker/screens/settings/details/category_settings_screen.dart';
+import 'package:expense_tracker/screens/settings/details/currency_select_modal.dart';
 import 'package:expense_tracker/screens/settings/settings_item.dart';
 import 'package:flutter/material.dart';
 
@@ -26,6 +27,12 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.category_outlined,
             onPress: _openCategorySettings,
           ),
+          SettingsItem(
+            settingName: "Currency",
+            subtitle: "Change selected currency",
+            icon: Icons.currency_exchange,
+            onPress: _openCurrencyModal,
+          ),
           // Add more SettingsItem widgets as needed
         ],
       ),
@@ -43,6 +50,14 @@ class SettingsScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (ctx) => const CategorySettingsScreen()),
+    );
+  }
+
+  void _openCurrencyModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => const CurrencySelectModal(),
     );
   }
 }
