@@ -1,3 +1,4 @@
+import 'package:expense_tracker/provider/currency_provider.dart';
 import 'package:expense_tracker/widgets/transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,9 +10,17 @@ var kDarkColorScheme = ColorScheme.fromSeed(
   brightness: Brightness.dark,
   seedColor: const Color.fromARGB(255, 110, 240, 143),
 );
-void main() {
+void main() async {
+  // Load the saved currency before running the app
+  WidgetsFlutterBinding.ensureInitialized();
+  final currencyNotifier = CurrencyNotifier();
+  await currencyNotifier.loadCurrency();
+
   runApp(
     ProviderScope(
+      overrides: [
+        currencyProvider.overrideWith((ref) => currencyNotifier),
+      ],
       child: MaterialApp(
         darkTheme: ThemeData.dark().copyWith(
           colorScheme: kDarkColorScheme,

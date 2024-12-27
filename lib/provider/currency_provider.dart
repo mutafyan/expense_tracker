@@ -15,22 +15,32 @@ final baseCurrency = currencies['AMD'];
 class CurrencyNotifier extends StateNotifier<Currency> {
   CurrencyNotifier() : super(baseCurrency!);
 
+  // Load the selected currency from the database when the app starts
+  Future<void> loadCurrency() async {
+    final dbHelper = DatabaseHelper.instance;
+    final savedCurrency = await dbHelper.getSelectedCurrency();
+    state = savedCurrency;
+  }
+
+  // Change the current currency and save it to the database
   Future<void> changeCurrency(Currency newCurrency) async {
     if (newCurrency == state) return;
 
     try {
       final service = CurrencyService();
       final rates = await service.fetchCurrencyRates();
-      print("Rates: $rates");
-      final oldCurrencyRate = rates[state.displayISO] ??
-          1.0; // Default AMD = 1.0 not included in rates
+      final oldCurrencyRate =
+          rates[state.displayISO] ?? 1.0; // Default AMD = 1.0
       final newCurrencyRate = rates[newCurrency.displayISO] ?? 1.0;
 
       // Calculate relative exchange rate
       final relativeRate = oldCurrencyRate / newCurrencyRate;
-      print("Relative Rate: $relativeRate");
-      // Update all accounts
+
+      // Update all accounts' balances
       await _updateAccountBalances(relativeRate);
+
+      // Save the new currency to the database
+      await _saveCurrencyToDb(newCurrency);
 
       // Update the state to the new currency
       state = newCurrency;
@@ -39,20 +49,24 @@ class CurrencyNotifier extends StateNotifier<Currency> {
     }
   }
 
+  // Helper method to update all account balances based on the exchange rate
   Future<void> _updateAccountBalances(double relativeRate) async {
     final dbHelper = DatabaseHelper.instance;
     final accounts = await dbHelper.getAllAccounts();
 
     for (var account in accounts) {
-      // Update balance using relative rate
-      print("Relative Rate: $relativeRate");
-
       account.balance = account.balance * relativeRate;
       await dbHelper.updateAccount(account);
-      print("Account ${account.displayName}: ${account.balance}");
     }
+  }
+
+  // Save the selected currency to the database
+  Future<void> _saveCurrencyToDb(Currency currency) async {
+    final dbHelper = DatabaseHelper.instance;
+    await dbHelper.saveSelectedCurrency(currency);
   }
 }
 
+// Riverpod provider for CurrencyNotifier
 final currencyProvider = StateNotifierProvider<CurrencyNotifier, Currency>(
     (ref) => CurrencyNotifier());

@@ -1,6 +1,7 @@
 import 'package:expense_tracker/data/default_categories.dart';
 import 'package:expense_tracker/models/category/category.dart';
 import 'package:expense_tracker/models/account/account.dart';
+import 'package:expense_tracker/models/currency/currency.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
 import 'package:sqflite/sqflite.dart';
@@ -69,20 +70,38 @@ class DatabaseHelper {
 
     // Create transactions table
     await db.execute('''
-      CREATE TABLE transactions (
-        id $idType,
-        title $textType,
-        amount $doubleType,
-        date $textType,
-        category_id TEXT,
-        account_id $textType,
-        type $textType,
-        currency_symbol $textType,
-        currency_name $textType,
-        FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
-        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
-      )
-    ''');
+  CREATE TABLE transactions (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    amount REAL NOT NULL,
+    date TEXT NOT NULL,
+    category_id TEXT,
+    account_id TEXT,
+    type TEXT NOT NULL,
+    currency_symbol TEXT NOT NULL,
+    currency_name TEXT NOT NULL,
+    currency_iso TEXT NOT NULL, -- Add this column
+    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
+  )
+''');
+
+    // create currency table
+    await db.execute('''
+    CREATE TABLE selected_currency (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      currency_iso TEXT NOT NULL,
+      currency_symbol TEXT NOT NULL,
+      currency_name TEXT NOT NULL
+    )
+  ''');
+
+    // Insert a default currency (e.g., AMD)
+    await db.insert('selected_currency', {
+      'currency_iso': 'AMD',
+      'currency_symbol': '֏',
+      'currency_name': 'Armenian Dram'
+    });
 
     await _insertDefaultCategories(db);
 
@@ -108,27 +127,56 @@ class DatabaseHelper {
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 6) {
-      final existingColumns =
-          await db.rawQuery('PRAGMA table_info(transactions)');
-      final columnNames =
-          existingColumns.map((col) => col['name'] as String).toList();
+      // Add selected_currency table
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS selected_currency (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        currency_iso TEXT NOT NULL,
+        currency_symbol TEXT NOT NULL,
+        currency_name TEXT NOT NULL
+      )
+    ''');
 
-      if (!columnNames.contains('currency_symbol')) {
-        await db.execute(
-            'ALTER TABLE transactions ADD COLUMN currency_symbol TEXT;');
-      }
-      if (!columnNames.contains('currency_name')) {
-        await db
-            .execute('ALTER TABLE transactions ADD COLUMN currency_name TEXT;');
-      }
-      if (!columnNames.contains('currency_iso')) {
-        await db
-            .execute('ALTER TABLE transactions ADD COLUMN currency_iso TEXT;');
-        // Provide default values for existing rows
-        await db.execute(
-            'UPDATE transactions SET currency_iso = "AMD" WHERE currency_iso IS NULL;');
+      // Insert a default currency (e.g., AMD) if the table is empty
+      final result = await db.query('selected_currency');
+      if (result.isEmpty) {
+        await db.insert('selected_currency', {
+          'currency_iso': 'AMD',
+          'currency_symbol': '֏',
+          'currency_name': 'Armenian Dram'
+        });
       }
     }
+  }
+
+  // Currency CRUD
+  Future<void> saveSelectedCurrency(Currency currency) async {
+    final db = await instance.database;
+
+    // Clear any existing selection and add the new currency
+    await db.delete('selected_currency');
+    await db.insert('selected_currency', {
+      'currency_iso': currency.iso,
+      'currency_symbol': currency.symbol,
+      'currency_name': currency.name
+    });
+  }
+
+  Future<Currency> getSelectedCurrency() async {
+    final db = await instance.database;
+
+    final result = await db.query('selected_currency', limit: 1);
+    if (result.isNotEmpty) {
+      final currency = result.first;
+      return Currency(
+        currency['currency_symbol'] as String,
+        currency['currency_name'] as String,
+        currency['currency_iso'] as String,
+      );
+    }
+
+    // Return a default currency if none is found
+    return Currency('֏', 'Armenian Dram', 'AMD');
   }
 
   // Category CRUD
