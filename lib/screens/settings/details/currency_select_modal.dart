@@ -15,6 +15,13 @@ class _CurrencySelectModalState extends ConsumerState<CurrencySelectModal> {
   Currency? selectedCurrency;
 
   @override
+  void initState() {
+    super.initState();
+    final currentCurrency = ref.read(currencyProvider);
+    selectedCurrency = currentCurrency;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding:
@@ -62,20 +69,27 @@ class _CurrencySelectModalState extends ConsumerState<CurrencySelectModal> {
               ),
               const SizedBox(height: 50),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (selectedCurrency != null) {
-                    ref
-                        .read(currencyProvider.notifier)
-                        .changeCurrency(selectedCurrency!);
+                    try {
+                      await ref
+                          .read(currencyProvider.notifier)
+                          .changeCurrency(selectedCurrency!);
 
-                    ScaffoldMessenger.of(context).clearSnackBars();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            "Currency set to ${selectedCurrency!.displayName}"),
-                      ),
-                    );
-                    Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              "Currency set to ${selectedCurrency!.displayName}"),
+                        ),
+                      );
+
+                      Navigator.of(context).pop();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
                   }
                 },
                 child: const Center(child: Text('Save')),

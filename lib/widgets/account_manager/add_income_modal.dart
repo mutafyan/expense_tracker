@@ -25,7 +25,7 @@ class AddIncomeModal extends ConsumerStatefulWidget {
 
 class _AddIncomeModalState extends ConsumerState<AddIncomeModal> {
   final _formKey = GlobalKey<FormState>();
-  int _incomeAmount = 0;
+  double _incomeAmount = 0;
   final dbHelper = DatabaseHelper.instance;
   Currency? _selectedCurrency;
 
@@ -68,7 +68,7 @@ class _AddIncomeModalState extends ConsumerState<AddIncomeModal> {
     Navigator.pop(context);
   }
 
-  void _onAmountEntered(int newAmount) {
+  void _onAmountEntered(double newAmount) {
     _incomeAmount = newAmount;
   }
 

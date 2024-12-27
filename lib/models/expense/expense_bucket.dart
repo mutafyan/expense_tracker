@@ -4,7 +4,7 @@ import 'package:expense_tracker/models/transaction/financial_transaction_type.da
 
 class ExpenseBucket {
   final Category category;
-  final int totalAmount;
+  final double totalAmount;
 
   // Constructing an ExpenseBucket from a list of transactions.
   ExpenseBucket.forCategory(

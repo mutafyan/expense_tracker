@@ -26,8 +26,8 @@ class ExpandedChart extends StatelessWidget {
         .toList();
   }
 
-  int get totalExpenses {
-    int total = 0;
+  double get totalExpenses {
+    double total = 0;
     for (final bucket in buckets) {
       total += bucket.totalAmount;
     }

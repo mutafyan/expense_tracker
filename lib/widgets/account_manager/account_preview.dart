@@ -1,8 +1,10 @@
 import 'package:expense_tracker/models/account/account.dart';
+import 'package:expense_tracker/provider/currency_provider.dart';
 import 'package:expense_tracker/widgets/account_manager/add_income_modal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AccountPreview extends StatelessWidget {
+class AccountPreview extends ConsumerWidget {
   final List<Account> accounts;
   final VoidCallback onAccountUpdated;
   final VoidCallback onAddAccount; // Callback to open add account modal
@@ -30,10 +32,11 @@ class AccountPreview extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final height = MediaQuery.of(context).size.height / 9;
     final itemCount =
         isAddAccountEnabled ? accounts.length + 1 : accounts.length;
+    final selectedCurrency = ref.watch(currencyProvider);
 
     return SizedBox(
       height: height,
@@ -99,7 +102,7 @@ class AccountPreview extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    "${account.displayBalance} ֏",
+                    "${account.formattedBalance} ${selectedCurrency.displaySymbol}",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

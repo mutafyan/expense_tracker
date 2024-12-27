@@ -22,7 +22,7 @@ class FinancialTransaction {
 
   final String id;
   final String title;
-  final int amount;
+  final double amount;
   final DateTime date;
   final Category category;
   final Account account;
@@ -40,6 +40,7 @@ class FinancialTransaction {
       'amount': amount,
       'currency_symbol': currency.displaySymbol,
       'currency_name': currency.displayName,
+      'currency_iso': currency.displayISO,
       'date': date.toIso8601String(),
       'category_id': category.id,
       'account_id': account.id,
@@ -49,15 +50,14 @@ class FinancialTransaction {
 
   factory FinancialTransaction.fromMap(
       Map<String, dynamic> map, Account account, Category category) {
-    print("currency symbol:  ${map['currency_symbol']}");
-    print("map:  $map");
     return FinancialTransaction(
       id: map['id'],
       title: map['title'],
       amount: map['amount'],
       currency: Currency(
-        map['currency_symbol'],
-        map['currency_name'],
+        map['currency_symbol'] ?? '',
+        map['currency_name'] ?? 'Unknown Currency',
+        map['currency_iso'] ?? 'Unknown ISO',
       ),
       date: DateTime.parse(map['date']),
       category: category,

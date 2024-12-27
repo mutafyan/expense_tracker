@@ -28,7 +28,7 @@ class AddTransactionModal extends ConsumerStatefulWidget {
 class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
-  int _enteredAmount = 0;
+  double _enteredAmount = 0;
   DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
   Account? _selectedAccount;
@@ -76,7 +76,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     );
   }
 
-  void _onAmountEntered(int newAmount) {
+  void _onAmountEntered(double newAmount) {
     _enteredAmount = newAmount;
   }
 

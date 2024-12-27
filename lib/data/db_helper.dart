@@ -30,7 +30,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5, // Incremented version to trigger migrations
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onOpen: (db) async {
@@ -43,13 +43,13 @@ class DatabaseHelper {
     const idType = 'TEXT PRIMARY KEY';
     const textType = 'TEXT NOT NULL';
     const intType = 'INTEGER NOT NULL';
-
+    const doubleType = 'REAL NOT NULL';
     // Create accounts table
     await db.execute('''
       CREATE TABLE accounts (
         id $idType,
         name $textType,
-        balance $intType DEFAULT 0,
+        balance $doubleType DEFAULT 0,
         isDefault $intType DEFAULT 0,
         isVisible $intType DEFAULT 1,
         iconCodePoint $intType DEFAULT ${Icons.account_balance_wallet.codePoint}
@@ -72,10 +72,10 @@ class DatabaseHelper {
       CREATE TABLE transactions (
         id $idType,
         title $textType,
-        amount $intType,
+        amount $doubleType,
         date $textType,
         category_id TEXT,
-        account_id TEXT NOT NULL,
+        account_id $textType,
         type $textType,
         currency_symbol $textType,
         currency_name $textType,
@@ -101,39 +101,33 @@ class DatabaseHelper {
   }
 
   Future _insertDefaultCategories(Database db) async {
-    final defaultCategories = [
-      Category(
-          name: "Food",
-          iconCodePoint: Icons.fastfood.codePoint,
-          isDefault: true),
-      Category(
-          name: "Transport",
-          iconCodePoint: Icons.directions_car.codePoint,
-          isDefault: true),
-      Category(
-          name: "Health",
-          iconCodePoint: Icons.healing.codePoint,
-          isDefault: true),
-      Category(
-          name: "Entertainment",
-          iconCodePoint: Icons.movie.codePoint,
-          isDefault: true),
-    ];
-
     for (var category in defaultCategories) {
       await db.insert('categories', category.toMap());
     }
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 5) {
-      // Add new columns for currency
-      await db.execute('''
-        ALTER TABLE transactions ADD COLUMN currency_symbol TEXT;
-      ''');
-      await db.execute('''
-        ALTER TABLE transactions ADD COLUMN currency_name TEXT;
-      ''');
+    if (oldVersion < 6) {
+      final existingColumns =
+          await db.rawQuery('PRAGMA table_info(transactions)');
+      final columnNames =
+          existingColumns.map((col) => col['name'] as String).toList();
+
+      if (!columnNames.contains('currency_symbol')) {
+        await db.execute(
+            'ALTER TABLE transactions ADD COLUMN currency_symbol TEXT;');
+      }
+      if (!columnNames.contains('currency_name')) {
+        await db
+            .execute('ALTER TABLE transactions ADD COLUMN currency_name TEXT;');
+      }
+      if (!columnNames.contains('currency_iso')) {
+        await db
+            .execute('ALTER TABLE transactions ADD COLUMN currency_iso TEXT;');
+        // Provide default values for existing rows
+        await db.execute(
+            'UPDATE transactions SET currency_iso = "AMD" WHERE currency_iso IS NULL;');
+      }
     }
   }
 
@@ -262,6 +256,8 @@ class DatabaseHelper {
   Future<int> updateAccount(Account account) async {
     final db = await instance.database;
 
+    account.balance = double.parse(account.balance.toStringAsFixed(2));
+
     if (account.isVisible) {
       final activeAccountsCount = Sqflite.firstIntValue(await db.rawQuery(
               'SELECT COUNT(*) FROM accounts WHERE isVisible = 1 AND id != ?',
@@ -308,10 +304,10 @@ class DatabaseHelper {
 
     final accounts = await getAllAccounts(includeHidden: false);
     final accountMap = {for (var acc in accounts) acc.id: acc};
-    print("Transactions: $txMap");
     return txMap.map((map) {
       final accountId = map['account_id'] as String;
       final categoryId = map['category_id'] as String?;
+
       final account = accountMap[accountId] ??
           Account(id: accountId, name: 'Unknown', balance: 0);
       final category = categoryId != null

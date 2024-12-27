@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AmountInput extends ConsumerWidget {
   const AmountInput({super.key, required this.onAmountEntered});
-  final Function(int) onAmountEntered;
+  final Function(double) onAmountEntered;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedCurrency = ref.watch(currencyProvider);
@@ -19,14 +19,14 @@ class AmountInput extends ConsumerWidget {
         if (value == null || value.trim().isEmpty) {
           return 'Please enter an amount';
         }
-        if (int.tryParse(value.trim()) == null ||
-            int.parse(value.trim()) <= 0) {
+        if (double.tryParse(value.trim()) == null ||
+            double.parse(value.trim()) <= 0) {
           return 'Please enter a valid positive number';
         }
         return null;
       },
       onSaved: (value) {
-        int amount = int.parse(value!.trim());
+        double amount = double.parse(value!.trim());
         onAmountEntered(amount);
       },
     );

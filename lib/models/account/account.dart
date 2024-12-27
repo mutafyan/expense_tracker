@@ -16,7 +16,7 @@ class Account {
 
   String id;
   final String name;
-  int balance;
+  double balance;
   bool isDefault;
   bool isVisible;
   IconData iconData;
@@ -33,13 +33,17 @@ class Account {
   }
 
   String get displayName => name[0].toUpperCase() + name.substring(1);
-  int get displayBalance => balance;
+  double get displayBalance => balance;
+  String get formattedBalance {
+    return balance
+        .toStringAsFixed(balance.truncateToDouble() == balance ? 0 : 2);
+  }
 
-  void addIncome(int income) {
+  void addIncome(double income) {
     balance += income;
   }
 
-  void deductExpense(int expense) {
+  void deductExpense(double expense) {
     balance -= expense;
   }
 
