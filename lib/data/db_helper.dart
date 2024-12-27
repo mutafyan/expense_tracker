@@ -379,6 +379,88 @@ class DatabaseHelper {
     }).toList();
   }
 
+  Future<List<FinancialTransaction>> getAllIncomes() async {
+    final db = await instance.database;
+    final txMap = await db.query(
+      'transactions',
+      where: 'type = ?', // Filter for income
+      whereArgs: [FinancialTransactionType.income.name],
+    );
+
+    final categories = await getAllCategories(includeHidden: false);
+    final categoryMap = {for (var cat in categories) cat.id: cat};
+
+    final accounts = await getAllAccounts(includeHidden: false);
+    final accountMap = {for (var acc in accounts) acc.id: acc};
+
+    return txMap.map((map) {
+      final accountId = map['account_id'] as String;
+      final categoryId = map['category_id'] as String?;
+
+      final account = accountMap[accountId] ??
+          Account(id: accountId, name: 'Unknown', balance: 0);
+      final category = categoryId != null
+          ? categoryMap[categoryId] ??
+              Category(
+                id: categoryId,
+                name: 'Uncategorized',
+                iconCodePoint: Icons.help_outline.codePoint,
+                isDefault: true,
+                isVisible: true,
+              )
+          : Category(
+              id: 'unknown',
+              name: 'Uncategorized',
+              iconCodePoint: Icons.help_outline.codePoint,
+              isDefault: true,
+              isVisible: true,
+            );
+
+      return FinancialTransaction.fromMap(map, account, category);
+    }).toList();
+  }
+
+  Future<List<FinancialTransaction>> getAllExpenses() async {
+    final db = await instance.database;
+    final txMap = await db.query(
+      'transactions',
+      where: 'type = ?', // Filter for expense
+      whereArgs: [FinancialTransactionType.expense.name],
+    );
+
+    final categories = await getAllCategories(includeHidden: false);
+    final categoryMap = {for (var cat in categories) cat.id: cat};
+
+    final accounts = await getAllAccounts(includeHidden: false);
+    final accountMap = {for (var acc in accounts) acc.id: acc};
+
+    return txMap.map((map) {
+      final accountId = map['account_id'] as String;
+      final categoryId = map['category_id'] as String?;
+
+      final account = accountMap[accountId] ??
+          Account(id: accountId, name: 'Unknown', balance: 0);
+      final category = categoryId != null
+          ? categoryMap[categoryId] ??
+              Category(
+                id: categoryId,
+                name: 'Uncategorized',
+                iconCodePoint: Icons.help_outline.codePoint,
+                isDefault: true,
+                isVisible: true,
+              )
+          : Category(
+              id: 'unknown',
+              name: 'Uncategorized',
+              iconCodePoint: Icons.help_outline.codePoint,
+              isDefault: true,
+              isVisible: true,
+            );
+
+      return FinancialTransaction.fromMap(map, account, category);
+    }).toList();
+  }
+
   Future<int> insertTransaction(FinancialTransaction transaction) async {
     final db = await instance.database;
     if (transaction.type == FinancialTransactionType.expense &&

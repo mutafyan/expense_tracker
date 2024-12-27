@@ -55,8 +55,6 @@ class CurrencyService {
         rates[currencyCode] = double.parse(rate);
       }
     }
-
-    print("Filtered rates: $rates");
     return rates;
   }
 }

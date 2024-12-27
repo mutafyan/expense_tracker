@@ -20,7 +20,8 @@ class TransactionsScreen extends StatefulWidget {
   State<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
+class _TransactionsScreenState extends State<TransactionsScreen>
+    with SingleTickerProviderStateMixin {
   final dbHelper = DatabaseHelper.instance;
   List<FinancialTransaction> _registeredTransactions = [];
   List<Account> _accounts = [];
@@ -29,27 +30,56 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   bool _isFabVisible = true;
   bool _isLoading = true;
   String? _error;
+  bool _isDropdownVisible = false;
+  String _selectedCategory = "All Transactions";
+
+  // Animation controller for sliding dropdown
+  late AnimationController _animationController;
+  late Animation<double> _dropdownAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadData();
     _scrollController.addListener(_onScroll);
+
+    // Initialize animation
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _dropdownAnimation =
+        Tween<double>(begin: -200.0, end: 0).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
-    await dbHelper.addDefaultCategories();
-    await dbHelper.addDefaultAccounts();
+    setState(() {
+      _isLoading = true;
+    });
+
     final visibleAccounts = await _loadVisibleAccounts();
     final visibleCategories = await _loadVisibleCategories();
-    final transactions = await dbHelper.getAllTransactions();
+
+    List<FinancialTransaction> transactions;
+    if (_selectedCategory == "All Transactions") {
+      transactions = await dbHelper.getAllTransactions();
+    } else if (_selectedCategory == "Incomes") {
+      transactions = await dbHelper.getAllIncomes();
+    } else {
+      transactions = await dbHelper.getAllExpenses();
+    }
+
     setState(() {
       _accounts = visibleAccounts;
       _categories = visibleCategories;
@@ -228,14 +258,71 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
+  List<String> _getOptions() {
+    const allCategories = ["All Transactions", "Incomes", "Expenses"];
+    return allCategories
+        .where((category) => category != _selectedCategory)
+        .toList();
+  }
+
+  void _toggleDropdown() {
+    setState(() {
+      _isDropdownVisible = !_isDropdownVisible;
+      if (_isDropdownVisible) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  Future<void> _selectCategory(String category) async {
+    setState(() {
+      _selectedCategory = category;
+      _isDropdownVisible = false;
+      _animationController.reverse();
+    });
+
+    // Reload only transactions
+    List<FinancialTransaction> updatedTransactions;
+    if (category == "All Transactions") {
+      updatedTransactions = await dbHelper.getAllTransactions();
+    } else if (category == "Incomes") {
+      updatedTransactions = await dbHelper.getAllIncomes();
+    } else {
+      updatedTransactions = await dbHelper.getAllExpenses();
+    }
+
+    setState(() {
+      _registeredTransactions = updatedTransactions;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool isAddAccountEnabled = _accounts.length < 10;
     return Scaffold(
       floatingActionButton:
           _isFabVisible ? AddButton(onPress: _openAddTransactionModal) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
+        title: GestureDetector(
+          onTap: _toggleDropdown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _selectedCategory,
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer),
+              ),
+              AnimatedRotation(
+                turns: _isDropdownVisible ? 0.5 : 1.0, // Rotate 180 degrees
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(Icons.keyboard_arrow_down_rounded),
+              ),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: () async {
@@ -246,80 +333,128 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               await _refreshData();
             },
             icon: const Icon(Icons.settings),
-          )
+          ),
         ],
-        title: const Text("Expense Tracker"),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
-              : Column(
+              : Stack(
                   children: [
-                    SizedBox(
-                      height: 100.0,
-                      child: AccountPreview(
-                        accounts: _accounts,
-                        onAccountUpdated: _refreshData,
-                        onAddAccount: _openAddAccountModal,
-                        isAddAccountEnabled: isAddAccountEnabled,
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    _registeredTransactions.isEmpty
-                        ? const Expanded(
-                            child: Center(
-                              child: Text(
-                                "No registered transactions, create a new one!",
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          )
-                        : Expanded(
-                            child: NestedScrollView(
-                              controller: _scrollController,
-                              headerSliverBuilder:
-                                  (context, innerBoxIsScrolled) {
-                                return [
-                                  SliverOverlapAbsorber(
-                                    handle: NestedScrollView
-                                        .sliverOverlapAbsorberHandleFor(
-                                            context),
-                                    sliver: SliverAppBar(
-                                      expandedHeight: 200,
-                                      floating: false,
-                                      pinned: false,
-                                      snap: false,
-                                      backgroundColor: Colors.transparent,
-                                      flexibleSpace: FlexibleSpaceBar(
-                                        background: ExpandedChart(
-                                          transactions: _registeredTransactions,
-                                          categories: _categories,
-                                        ),
-                                      ),
-                                    ),
+                    Column(
+                      children: [
+                        SizedBox(
+                          height: 100.0,
+                          child: AccountPreview(
+                            accounts: _accounts,
+                            onAccountUpdated: _refreshData,
+                            onAddAccount: _openAddAccountModal,
+                            isAddAccountEnabled: _accounts.length < 10,
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        _registeredTransactions.isEmpty
+                            ? const Expanded(
+                                child: Center(
+                                  child: Text(
+                                    "No registered transactions, create a new one!",
+                                    textAlign: TextAlign.center,
                                   ),
-                                ];
-                              },
-                              body: Builder(
-                                builder: (context) {
-                                  return CustomScrollView(
-                                    slivers: [
-                                      SliverOverlapInjector(
+                                ),
+                              )
+                            : Expanded(
+                                child: NestedScrollView(
+                                  controller: _scrollController,
+                                  headerSliverBuilder:
+                                      (context, innerBoxIsScrolled) {
+                                    return [
+                                      SliverOverlapAbsorber(
                                         handle: NestedScrollView
                                             .sliverOverlapAbsorberHandleFor(
                                                 context),
+                                        sliver: SliverAppBar(
+                                          expandedHeight: 200,
+                                          floating: false,
+                                          pinned: false,
+                                          snap: false,
+                                          backgroundColor: Colors.transparent,
+                                          flexibleSpace: FlexibleSpaceBar(
+                                            background: ExpandedChart(
+                                              transactions:
+                                                  _registeredTransactions,
+                                              categories: _categories,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      TransactionsList(
-                                        transactions: _registeredTransactions,
-                                        onRemoveTransaction: _removeTransaction,
+                                    ];
+                                  },
+                                  body: Builder(
+                                    builder: (context) {
+                                      return CustomScrollView(
+                                        slivers: [
+                                          SliverOverlapInjector(
+                                            handle: NestedScrollView
+                                                .sliverOverlapAbsorberHandleFor(
+                                                    context),
+                                          ),
+                                          TransactionsList(
+                                            transactions:
+                                                _registeredTransactions,
+                                            onRemoveTransaction:
+                                                _removeTransaction,
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                      ],
+                    ),
+                    AnimatedBuilder(
+                      animation: _dropdownAnimation,
+                      builder: (context, child) {
+                        return Positioned(
+                          top: _dropdownAnimation.value,
+                          left: 4.0,
+                          child: Material(
+                            elevation: 8,
+                            borderRadius: BorderRadius.circular(12),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: _getOptions().map((option) {
+                                  return GestureDetector(
+                                    onTap: () => _selectCategory(option),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0,
+                                        vertical: 8.0,
                                       ),
-                                    ],
+                                      child: Text(
+                                        option,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
+                                        textAlign: TextAlign.left,
+                                      ),
+                                    ),
                                   );
-                                },
+                                }).toList(),
                               ),
                             ),
                           ),
+                        );
+                      },
+                    ),
                   ],
                 ),
     );
