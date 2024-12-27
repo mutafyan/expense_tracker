@@ -84,6 +84,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     await _loadData();
   }
 
+  Future<void> _refreshAccounts() async {
+    final updatedAccounts = await _loadVisibleAccounts();
+    setState(() {
+      _accounts = updatedAccounts;
+    });
+  }
+
   void _onScroll() {
     if (_scrollController.position.userScrollDirection ==
         ScrollDirection.reverse) {
@@ -151,20 +158,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   void _removeTransaction(FinancialTransaction transaction) async {
     final index = _registeredTransactions.indexOf(transaction);
     final updatedAccount = transaction.account;
+
+    // Temporarily remove the transaction from the list for UI update
+    setState(() {
+      _registeredTransactions.removeAt(index);
+    });
+
     await dbHelper.deleteTransaction(transaction.id);
 
-    // If we removed an expense, add back income. If we removed income, deduct
     if (transaction.type == FinancialTransactionType.expense) {
       updatedAccount.addIncome(transaction.amount);
     } else {
       updatedAccount.deductExpense(transaction.amount);
     }
-
     await dbHelper.updateAccount(updatedAccount);
-    await _refreshData();
-    setState(() {
-      _registeredTransactions.removeAt(index);
-    });
+
+    // Refresh accounts to update balances in the UI
+    await _refreshAccounts();
+
     _showSnackBar(transaction, updatedAccount, index);
   }
 
@@ -178,18 +189,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         action: SnackBarAction(
           label: "Undo",
           onPressed: () async {
-            await dbHelper.insertTransaction(transaction);
-            // Revert the account balance
-            if (transaction.type == FinancialTransactionType.expense) {
-              updatedAccount.deductExpense(transaction.amount);
-            } else {
-              updatedAccount.addIncome(transaction.amount);
+            // Check if the transaction already exists to prevent duplication
+            if (!_registeredTransactions.contains(transaction)) {
+              await dbHelper.insertTransaction(transaction);
+
+              // Adjust the account balance accordingly
+              if (transaction.type == FinancialTransactionType.expense) {
+                updatedAccount.deductExpense(transaction.amount);
+              } else {
+                updatedAccount.addIncome(transaction.amount);
+              }
+
+              await dbHelper.updateAccount(updatedAccount);
+
+              // Refresh accounts and transactions
+              await _refreshAccounts();
+              await _refreshData();
+
+              setState(() {
+                _registeredTransactions.insert(index, transaction);
+              });
             }
-            await dbHelper.updateAccount(updatedAccount);
-            await _refreshData();
-            setState(() {
-              _registeredTransactions.insert(index, transaction);
-            });
           },
         ),
       ),

@@ -12,6 +12,8 @@ class TransactionItem extends StatelessWidget {
     final isExpense = transaction.type == FinancialTransactionType.expense;
     final amountColor = isExpense ? Colors.red : Colors.green;
     final amountPrefix = isExpense ? '-' : '+';
+    final currencySymbol = transaction.currency.displaySymbol;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 4,
@@ -34,7 +36,7 @@ class TransactionItem extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '$amountPrefix${transaction.amount} ֏',
+                  '$amountPrefix${transaction.amount} $currencySymbol',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium

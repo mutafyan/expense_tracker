@@ -1,11 +1,14 @@
+import 'package:expense_tracker/models/currency/currency.dart';
+import 'package:expense_tracker/provider/currency_provider.dart';
 import 'package:expense_tracker/widgets/expense_manager/amount_input.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
 import 'package:expense_tracker/models/account/account.dart';
 import 'package:expense_tracker/models/category/category.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AddTransactionModal extends StatefulWidget {
+class AddTransactionModal extends ConsumerStatefulWidget {
   final List<Category> categories;
   final List<Account> accounts;
   final Future<int> Function(FinancialTransaction) onAddTransaction;
@@ -18,17 +21,18 @@ class AddTransactionModal extends StatefulWidget {
   });
 
   @override
-  State<AddTransactionModal> createState() => _AddTransactionModalState();
+  ConsumerState<AddTransactionModal> createState() =>
+      _AddTransactionModalState();
 }
 
-class _AddTransactionModalState extends State<AddTransactionModal> {
+class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   final _formKey = GlobalKey<FormState>();
   String _title = '';
   int _enteredAmount = 0;
   DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
   Account? _selectedAccount;
-
+  Currency? selectedCurrency;
   void _presentDatePicker() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -55,6 +59,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     final newTransaction = FinancialTransaction(
       title: _title,
       amount: _enteredAmount,
+      currency: selectedCurrency!,
       date: _selectedDate,
       category: _selectedCategory!,
       account: _selectedAccount!,
@@ -88,6 +93,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
 
   @override
   Widget build(BuildContext context) {
+    selectedCurrency = ref.read(currencyProvider);
     return SingleChildScrollView(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,

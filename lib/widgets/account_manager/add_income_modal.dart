@@ -1,12 +1,15 @@
 import 'package:expense_tracker/data/db_helper.dart';
 import 'package:expense_tracker/models/account/account.dart';
+import 'package:expense_tracker/models/currency/currency.dart';
+import 'package:expense_tracker/provider/currency_provider.dart';
 import 'package:expense_tracker/widgets/expense_manager/amount_input.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction.dart';
 import 'package:expense_tracker/models/transaction/financial_transaction_type.dart';
 import 'package:expense_tracker/models/category/category.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AddIncomeModal extends StatefulWidget {
+class AddIncomeModal extends ConsumerStatefulWidget {
   final Account account;
   final VoidCallback onIncomeAdded;
 
@@ -17,13 +20,14 @@ class AddIncomeModal extends StatefulWidget {
   });
 
   @override
-  State<AddIncomeModal> createState() => _AddIncomeModalState();
+  ConsumerState<AddIncomeModal> createState() => _AddIncomeModalState();
 }
 
-class _AddIncomeModalState extends State<AddIncomeModal> {
+class _AddIncomeModalState extends ConsumerState<AddIncomeModal> {
   final _formKey = GlobalKey<FormState>();
   int _incomeAmount = 0;
   final dbHelper = DatabaseHelper.instance;
+  Currency? _selectedCurrency;
 
   Future<Category> _getUncategorizedCategory() async {
     final categories = await dbHelper.getAllCategories();
@@ -53,6 +57,7 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
       title: 'Income to ${widget.account.name}',
       amount: _incomeAmount,
       date: DateTime.now(),
+      currency: _selectedCurrency!, // !!
       category: uncategorizedCategory,
       account: widget.account,
       type: FinancialTransactionType.income,
@@ -69,6 +74,7 @@ class _AddIncomeModalState extends State<AddIncomeModal> {
 
   @override
   Widget build(BuildContext context) {
+    _selectedCurrency = ref.watch(currencyProvider);
     return SingleChildScrollView(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,

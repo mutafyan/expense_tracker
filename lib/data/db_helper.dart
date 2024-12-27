@@ -30,7 +30,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5, // Incremented version to trigger migrations
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onOpen: (db) async {
@@ -77,6 +77,8 @@ class DatabaseHelper {
         category_id TEXT,
         account_id TEXT NOT NULL,
         type $textType,
+        currency_symbol $textType,
+        currency_name $textType,
         FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
         FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
       )
@@ -124,7 +126,15 @@ class DatabaseHelper {
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    // Handle any migrations if needed
+    if (oldVersion < 5) {
+      // Add new columns for currency
+      await db.execute('''
+        ALTER TABLE transactions ADD COLUMN currency_symbol TEXT;
+      ''');
+      await db.execute('''
+        ALTER TABLE transactions ADD COLUMN currency_name TEXT;
+      ''');
+    }
   }
 
   // Category CRUD
@@ -298,7 +308,7 @@ class DatabaseHelper {
 
     final accounts = await getAllAccounts(includeHidden: false);
     final accountMap = {for (var acc in accounts) acc.id: acc};
-
+    print("Transactions: $txMap");
     return txMap.map((map) {
       final accountId = map['account_id'] as String;
       final categoryId = map['category_id'] as String?;
